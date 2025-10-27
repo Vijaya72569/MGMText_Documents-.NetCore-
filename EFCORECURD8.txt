@@ -1,0 +1,239 @@
+EFCURDCORE using .NetCore 8LTS
+================================================================================================
+Create StoredProcedures
+
+-- TABLE --Aspmvcdb database---
+use Aspmvcdb
+CREATE TABLE Employees (
+    EId INT PRIMARY KEY IDENTITY(1,1),
+    Name NVARCHAR(100) NOT NULL,
+    Salary DECIMAL(18,2) NOT NULL
+);
+select * from Employees
+-- PROCEDURES
+CREATE PROCEDURE GetAllEmp AS
+BEGIN
+    SELECT EId, Name, Salary FROM Employees;
+END;
+
+CREATE PROCEDURE GetEmpById @EId INT AS
+BEGIN
+    SELECT EId, Name, Salary FROM Employees WHERE EId = @EId;
+END;
+
+CREATE PROCEDURE InsertEmp @Name NVARCHAR(100), @Salary DECIMAL(18,2) AS
+BEGIN
+    INSERT INTO Employees (Name, Salary) VALUES (@Name, @Salary);
+END;
+
+CREATE PROCEDURE UpdateEmp @EId INT, @Name NVARCHAR(100), @Salary DECIMAL(18,2) AS
+BEGIN
+    UPDATE Employees SET Name = @Name, Salary = @Salary WHERE EId = @EId;
+END;
+
+CREATE PROCEDURE DeleteEmp @EId INT AS
+BEGIN
+    DELETE FROM Employees WHERE EId = @EId;
+END;
+
+
+========================================================================================================
+open visual studio 2022->
+create new project->asp.net webapplication(model-view-controller)->next->
+project name:EFCURDCORE8
+next->.dot net core 8.0->create
+click on tools->install nuget manager->manage nuget packages for solution
+click on-setting icon
+click on-add icon
+name:package source1
+source:https://packages.nuget.org/api/v2
+->update
+click on-add icon
+name:package source2
+source:https://api.nuget.org/v3/index.json
+->update
+->ok
+click on Browse:
+Microsoft.EntityFrameworkCore->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkDesign->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkSqlServer->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkTools->select project->version:8.0.0->install->ok->I Accept
+
+Appsettings.json
+
+"ConnectionStrings": {
+  "getcon": "server=localhost;Initial Catalog=mygominds;Integrated Security=SSPI;TrustServerCertificate=True;"
+  
+}
+
+Right click on Model->add->class->name:EmpModel->add
+
+EmpModel.ts
+
+using System.ComponentModel.DataAnnotations;
+
+namespace EFCURDCORE8.Models
+{
+    public class EmpModel
+    {
+        [Key]
+        public int Eid {  get; set; }
+        [Required]
+        public string? Ename { get; set; }
+        [Required]
+        public decimal Salary {  get; set; }
+    }
+}
+================================================================================================
+Right click on Model->add->class->name:EmpDbContext->add
+
+EmpDbContext.ts
+
+using Microsoft.EntityFrameworkCore;
+namespace EFCURDCORE8.Models
+{
+    public class EmpDbContext:DbContext
+    {
+        public EmpDbContext(DbContextOptions<EmpDbContext> options):base(options) { }
+        public DbSet<EmpModel> Employee { get; set; }
+    }
+}
+====================================================================================================
+register the EmpDbContext with DI and SqlServer in Program.ts
+
+Program.ts
+
+var builder = WebApplication.CreateBuilder(args);
+//add this code
+builder.Services.AddDbContext<EmpDbContext>(options=>
+options.UseSqlServer(builder.Configuration.GetConnectionString("getcon")));
+=====================================================================================================
+right click on controller->add controller->mvc controller empty->name:EmployeeController.ts->enter
+
+EmployeeController.ts
+
+using EFCURDCORE8.Models;
+using Microsoft.AspNetCore.Mvc;
+
+namespace EFCURDCORE8.Controllers
+{
+    public class EmployeeController : Controller
+    {
+        private readonly EmpDbContext _dbContext;
+        public EmployeeController(EmpDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
+            public IActionResult Index(int? id)
+        {
+            var employees=_dbContext.Employee.ToList();
+            EmpModel? emp = null;
+            if (id.HasValue)
+            { 
+            emp=_dbContext.Employee.Find(id.Value);
+            }
+            ViewBag.EditEmp=emp;
+            return View(employees);
+        }
+        [HttpPost]
+        public IActionResult Create(EmpModel obj) 
+        {
+            if (ModelState.IsValid) 
+            {
+             _dbContext.Employee.Add(obj);
+              _dbContext.SaveChanges();
+            }
+        return RedirectToAction("Index");
+        }
+        [HttpPost]
+        public IActionResult Edit(EmpModel obj)
+        {
+
+            if (ModelState.IsValid)
+            {
+                _dbContext.Employee.Update(obj);
+                _dbContext.SaveChanges();
+            }
+            return RedirectToAction("Index");
+        }
+        [HttpPost]
+        public IActionResult Delete(int id) 
+        {
+            var empid = _dbContext.Employee.Find(id);
+            if (empid != null) 
+            { 
+             _dbContext.Employee.Remove(empid);
+                _dbContext.SaveChanges();
+            }
+            return RedirectToAction("Index");
+        }
+    }
+}
+===================================================================================================
+Right click on -Index()->add view->razor view empty->
+Name:Index->add
+
+Index.cshtml
+
+@model List<EFCURDCORE8.Models.EmpModel>
+
+@{
+    var editemp = ViewBag.EditEmp as EFCURDCORE8.Models.EmpModel;
+}
+<h1>Employee Management</h1>
+<form method="post" action="@(editemp !=null ? "/Employee/Edit":"/Employee/Create")">
+<input type="number" name="Eid" value="@(editemp?.Eid ?? 0)" @(editemp!=null ? "readonly" :"") /> <br />
+<input type="text" name="Ename" value="@(editemp?.Ename?? "")" /> <br />
+<input type="number" name="Salary" value="@(editemp?.Salary?? 0)" /> <br /> <br />
+<button type="submit">@(editemp!=null ? "Update":"Create")</button> 
+
+</form>
+<hr />
+<table border="1">
+    <thead>
+        <tr>
+            <th>Eid</th>
+            <th>Ename</th>
+            <th>Salary</th>
+            <th colspan="2"> Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if(Model!=null && Model.Count > 0)
+        {
+            foreach(var emp in Model)
+            {
+                <tr>
+                      <td>@emp.Eid</td>
+                      <td>@emp.Ename</td>
+                      <td>@emp.Salary</td>
+                    <td>
+                        <form method="get" action="/Employee/Index">
+                            <input type="hidden" name="id" value="@(emp.Eid)" />
+                            <button type="submit">Edit</button>               
+                        </form>
+                    </td>
+                    <td>
+                        <form method="post" action="/Employee/Delete">
+                            <input type="hidden" name="id" value="@(emp.Eid)" />
+                            <button type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            } 
+        }
+        else
+        {
+            <tr>
+                <td colspan="5">No Records Available</td>
+            </tr>
+        }
+    </tbody>
+</table>
+===================================================================================================
+Program.ts
+
+  pattern: "{controller=Employee}/{action=Index}/{id?}");
+
+Run the application

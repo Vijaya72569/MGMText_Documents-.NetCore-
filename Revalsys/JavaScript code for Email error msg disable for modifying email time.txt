@@ -1,0 +1,19 @@
+//Change or modification my code
+
+@if (ViewBag.Message != null)
+{
+    <div id="email-error" style="color:red;">@ViewBag.Message</div>
+}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var emailInput = document.getElementById("Email"); // assuming model property is Email
+        var errorDiv = document.getElementById("email-error");
+
+        if (emailInput && errorDiv) {
+            emailInput.addEventListener("input", function () {
+                errorDiv.style.display = "none"; // hides the error as user modifies email
+            });
+        }
+    });
+</script>

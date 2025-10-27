@@ -1,0 +1,322 @@
+Curd Task in .NetCore Multipage
+==============================================================================================
+create table Emp(Eid int primary key identity(1,1),FirstName nvarchar(50),
+LastName nvarchar(40),Gender nvarchar(8),Email nvarchar(50),Mobile bigint)
+
+
+
+=========================================================================================
+
+Open visual studio 2022->
+Create new project->asp.net webapplication(model-view-controller)->next->
+Project name:MvcCurdMultipage
+Next->.dot net core 8.0->create
+Click on tools->install nuget manager->manage nuget packages for solution
+Click on-setting icon
+Click on-add icon
+name:package source1
+source:https://packages.nuget.org/api/v2
+->update
+click on-add icon
+name:package source2
+source:https://api.nuget.org/v3/index.json
+->update
+->ok
+click on Browse:
+Microsoft.EntityFrameworkCore->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFramework.Design->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFramework.SqlServer->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFramework.Tools->select project->version:8.0.0->install->ok->I Accept
+
+Appsettings.json
+
+"ConnectionStrings": {
+  "getcon": "server=localhost;Initial Catalog=mygominds;Integrated Security=SSPI;TrustServerCertificate=True;"
+  
+}
+
+Right click on Model->add->class->name:EmpModel->add
+
+using System.ComponentModel.DataAnnotations;
+
+namespace TaskCurdNetCore.Models
+{
+    public class EmpModel
+    {
+        public int Eid {  get; set; }
+        [Required]
+        [RegularExpression("^[A-Za-z]+$",ErrorMessage ="First name Should Contain only letters")]
+        public string? FirstName {  get; set; }
+        public string? LastName { get; set; }
+        [Required]
+        public string? Gender { get; set; }
+        
+        [Required]
+        [RegularExpression(@"^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,4}$",ErrorMessage ="Invalid Email format")]
+        public string? Email {  get; set; }
+        [Required]
+        [RegularExpression(@"^[789]\d{9}$",ErrorMessage ="mobile number should start with 7,8,9 & 10 digits only ")]
+        public long Mobile { get; set; }
+
+
+    }
+}
+
+
+=======================================================================================
+
+================================================================================================
+Right click on Model->add->class->name:EmpRepository->add
+using Microsoft.Data.SqlClient;
+
+namespace TaskCurdNetCore.Models
+{
+    public class EmpRepository
+    {
+        string constring;
+        public EmpRepository(IConfiguration configuration)
+        {
+            constring = configuration.GetConnectionString("getcon")!;
+        }
+        public void AddEmp(EmpModel emp)
+        {
+            SqlConnection con = new SqlConnection(constring);
+            string query = "insert into Emp(FirstName,LastName,Gender,Email,Mobile) values (@fname,@lname,@gender,@email,@mobile)";
+            SqlCommand cmd = new SqlCommand(query, con);
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.Parameters.AddWithValue("@fname", emp.FirstName);
+            cmd.Parameters.AddWithValue("@lname", string.IsNullOrWhiteSpace(emp.LastName) ? DBNull.Value : emp.LastName);
+            cmd.Parameters.AddWithValue("@gender", emp.Gender);
+            cmd.Parameters.AddWithValue("@email", emp.Email);
+            cmd.Parameters.AddWithValue("@mobile", emp.Mobile);
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+        }
+        public List<EmpModel> GetEmpList()
+        {
+            List<EmpModel> list = new List<EmpModel>();
+            SqlConnection con = new SqlConnection(constring);
+            string query = "select * from Emp";
+            SqlCommand cmd = new SqlCommand(query, con);
+            con.Open();
+            SqlDataReader dr = cmd.ExecuteReader();
+            while (dr.Read())
+            {
+                list.Add(new EmpModel()
+                {
+                    Eid = Convert.ToInt32(dr["Eid"]),
+                    FirstName = Convert.ToString(dr["FirstName"]),
+                    LastName = Convert.ToString(dr["LastName"]),
+                    Gender = Convert.ToString(dr["Gender"]),
+                    Email = Convert.ToString(dr["Email"]),
+                    Mobile = Convert.ToInt64(dr["Mobile"]),
+                });
+            }
+            return list;
+        }
+
+        public void EditEmp(EmpModel emp)
+        {
+            SqlConnection con = new SqlConnection(constring);
+            string query = "update Emp set FirstName=@fname,LastName=@lname,Gender=@gender,Email=@email,Mobile=@mobile where Eid=@eid";
+            SqlCommand cmd = new SqlCommand(query, con);
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.Parameters.AddWithValue("@eid", emp.Eid);
+            cmd.Parameters.AddWithValue("@fname", emp.FirstName);
+            cmd.Parameters.AddWithValue("@lname", string.IsNullOrWhiteSpace(emp.LastName) ? DBNull.Value : emp.LastName);
+            cmd.Parameters.AddWithValue("@gender", emp.Gender);
+            cmd.Parameters.AddWithValue("@email", emp.Email);
+            cmd.Parameters.AddWithValue("@mobile", emp.Mobile);
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+        }
+        public void DeleteEmp(int id)
+        {
+            SqlConnection con = new SqlConnection(constring);
+            string query = "delete from Emp where Eid=@eid";
+            SqlCommand cmd = new SqlCommand(query, con);
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.Parameters.AddWithValue("@eid", id);
+           
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+        }
+    }
+}
+
+=================================================================================================================================
+Program.ts
+//Add this line code
+builder.Services.AddScoped<EmpRepository>();
+==========================================================================================
+right click on controller->add controller->mvc controller empty->name:EmpController.ts->enter
+
+using Microsoft.AspNetCore.Mvc;
+using TaskCurdNetCore.Models;
+
+namespace TaskCurdNetCore.Controllers
+{
+    public class EmpController : Controller
+    {
+        EmpRepository _empRepo;
+        public EmpController( EmpRepository empRepo) 
+        { 
+            _empRepo = empRepo;
+        }
+
+        public IActionResult Index()
+        {
+            var employees=_empRepo.GetEmpList();
+            return View(employees);
+        }
+        public IActionResult Create()
+        {
+            return View();
+        }
+        [HttpPost]
+        public IActionResult Create(EmpModel emp)
+        {
+            if (ModelState.IsValid)
+            {
+                _empRepo.AddEmp(emp);
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+        public IActionResult Edit(int id)
+        {
+            var editemp=_empRepo.GetEmpList().Find(emp=>emp.Eid==id);
+            return View(editemp);
+        }
+        [HttpPost]
+        public IActionResult Edit( int id,EmpModel emp)
+        {
+            emp.Eid = id;
+            if (ModelState.IsValid)
+            {
+            _empRepo.EditEmp(emp);
+                return RedirectToAction("Index");
+            }
+
+            return View();
+        }
+        public IActionResult Delete(int id)
+        { 
+         var delemp=_empRepo.GetEmpList().Find(model=>model.Eid==id);
+            if(delemp != null)
+            {
+                _empRepo.DeleteEmp(id);
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+
+
+    }
+
+}
+
+=================================================================================================================================
+Using Scaffolding.................................................
+
+Right click on -Index()->add view-> razor view ->
+view name:Index
+Template:List
+Model Class:EmpModel(TaskCurd.NetCore)->Add
+
+//add this code
+ <td>
+     @Html.ActionLink("Edit", "Edit", new { id=item.Eid }) |
+   
+     @Html.ActionLink("Delete", "Delete", new { id=item.Eid },
+     new {onclick="return confirm('Are You Sure Delete?')"})
+ </td>
+
+=====================================================================
+Right click on -Create()->add view-> razor view ->
+view name:Create
+Template:Create
+Model Class:EmpModel(TaskCurd.NetCore)->Add
+
+//add this code
+<form asp-action="Create" method="post"> and
+
+ <div class="form-group">
+     <label asp-for="Gender" class="control-label"></label>
+     <input asp-for="Gender" type="radio" value="Male"/>Male           //add
+     <input asp-for="Gender" type="radio" value="Female" />Female //add
+
+     <span asp-validation-for="Gender" class="text-danger"></span>
+ </div>
+
+and remove this code==========================
+/* <div class="form-group">
+     <label asp-for="Eid" class="control-label"></label>
+     <input asp-for="Eid" class="form-control" />
+     <span asp-validation-for="Eid" class="text-danger"></span>
+ </div>*/
+==========================================================
+Right click on -Edit()->add view-> razor view ->
+view name:Edit
+Template:Edit
+Model Class:EmpModel(TaskCurd.NetCore)->Add
+
+add this line
+ <div class="form-group">
+    
+     <input asp-for="Eid" type="hidden" class="form-control" />
+    
+ </div>
+change name
+ <input type="submit" value="Update" class="btn btn-primary" />
+
+
+===============================================================================================================
+Program.ts
+
+
+ pattern: "{controller=Emp}/{action=GetAllEmp}/{id?}");
+ 
+application Run
+
+============================================================================================================================
+Not Check Validation at the time of Edit if not modify cname then not display error msg
+[HttpPost]
+public IActionResult Edit(CourseModel obj, int id)
+{
+    try
+    {
+        var existingCourse = _courseRepository.CourseDetail(id);
+
+        // Only check for duplicate if CourseCode is modified
+        if (obj.CourseCode != existingCourse.CourseCode)
+        {
+            bool exists = _courseRepository.CourseValid(obj.CourseCode!);
+            if (exists)
+            {
+                ModelState.AddModelError("CourseCode", $"Course code '{obj.CourseCode}' is already in use.");
+                return View(obj);
+            }
+        }
+
+        if (ModelState.IsValid)
+        {
+            obj.CourseId = id;
+            _courseRepository.EditCourse(obj);
+            return RedirectToAction("Index");
+        }
+    }
+    catch (SqlException)
+    {
+        ViewBag.msg = "Sql Error";
+    }
+    catch (Exception)
+    {
+        ViewBag.msg = "Something went wrong. Try Again.";
+    }
+
+    return View(obj);
+}

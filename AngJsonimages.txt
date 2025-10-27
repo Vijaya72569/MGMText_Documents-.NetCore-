@@ -1,0 +1,144 @@
+Images display using  json
+==========================================================================================
+go to visual studio code->file open folder->AngularP->select folder->
+go to terminal->new terminal->
+D:\AngularP> ng new image-galary-app
+Would you like to add Angular routing? Yes
+? Which stylesheet format would you like to use? CSS-->enter
+
+go to terminal->new terminal->
+D:\AngularP> cd image-galary-app
+D:\AngularP>image-galary-app>ng g s image->enter
+D:\AngularP>image-galary-app>ng g c imagelist->enter
+
+go to terminal->new terminal->
+select -> powershell
+PS D:AngularP>cd image-galary-app
+PS D:AngularP>image-galary-app> npm install -g json.server->enter
+
+Right click on image-galary-app->new file->name:db.json->enter->
+
+{}db.json
+=====================================================================================
+db.json
+===============================================================================
+{
+    "images":[
+       
+ {"id":1,
+"url":"assets/image1.jpg"
+},
+ 
+ {"id":2,
+"url":"assets/image2.jpg"
+},
+    ]
+}
+========================================================================================
+app.module.ts
+
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { HttpClientModule } from '@angular/common/http';
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { ImagelistComponent } from './imagelist/imagelist.component';
+
+@NgModule({
+  declarations: [
+    AppComponent,
+    ImagelistComponent
+  ],
+  imports: [
+    BrowserModule,
+    AppRoutingModule,
+    HttpClientModule
+  ],
+  providers: [],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+===============================================================================================
+image.service.ts
+
+import { Injectable } from '@angular/core';
+import{HttpClient} from '@angular/common/http';
+import { Observable } from 'rxjs';
+export interface Image{
+        "id":number;
+        "url":string;
+}
+ @Injectable({
+  providedIn: 'root'
+})
+
+export class ImageService {
+
+  private apiurl="";
+  constructor(private http:HttpClient) { }
+  getimage():Observable<Image[]>{
+    return this.http.get<Image[]>(this.apiurl)
+  }
+
+  
+}
+===============================================================================================
+imagelist.component.ts
+
+import { Component, Input } from '@angular/core';
+import { Image } from '../image.service';
+@Component({
+  selector: 'app-imagelist',
+  templateUrl: './imagelist.component.html',
+  styleUrls: ['./imagelist.component.css']
+})
+export class ImagelistComponent  {
+
+ 
+ @Input() images:Image[]=[];
+}
+====================================================================================================
+imagelist.component.html
+
+<p>imagelist works!</p>
+ <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+      <div *ngFor="let image of images">
+        <img [src]="image.url" width="150" height="150">
+      </div>
+    </div>
+================================================================================================
+app.component.ts
+
+import { Component,OnInit } from '@angular/core';
+import { ImageService,Image } from './image.service';
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent  implements OnInit{
+  images:Image[]=[];
+  constructor(private imageservice:ImageService){}
+  ngOnInit(): void {
+  
+   this.imageservice.getimage().subscribe(data=>this.images=data)
+  }
+
+  title = 'image-galary-app';
+}
+==========================================================================================
+app.component.html
+
+<h2>image galary</h2>
+<app-imagelist [images]="images"></app-imagelist>
+=====================================================================================
+
+// a working full Angular example that:
+
+✅ Fetches images from a db.json using json-server
+
+✅ Supports both online and local assets/ images
+
+✅ Shows a fallback placeholder image if a local image fails to load
+
+

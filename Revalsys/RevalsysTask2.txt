@@ -1,0 +1,724 @@
+SQL Table: tblCourseVijaya
+CREATE TABLE tblCourseVijaya (
+    CourseId INT PRIMARY KEY IDENTITY(1,1),
+    CourseName NVARCHAR(100) NOT NULL,
+    CourseCode NVARCHAR(50) NOT NULL UNIQUE,
+    Description NVARCHAR(500),
+    CourseStartDate DATE
+);
+📜 Stored Procedures
+
+CREATE PROCEDURE InsertCourseVijaya
+    @CourseName NVARCHAR(100),
+    @CourseCode NVARCHAR(50),
+    @Description NVARCHAR(500),
+    @CourseStartDate DATE
+AS
+BEGIN
+    INSERT INTO tblCourseVijaya (CourseName, CourseCode, Description, CourseStartDate)
+    VALUES (@CourseName, @CourseCode, @Description, @CourseStartDate)
+END
+🔹 DeleteCourseVijaya
+CREATE PROCEDURE DeleteCourseVijaya
+    @CourseId INT
+AS
+BEGIN
+    DELETE FROM tblCourseVijaya WHERE CourseId = @CourseId
+END
+🔹 GetAllCoursesVijaya
+
+CREATE PROCEDURE GetAllCoursesVijaya
+AS
+BEGIN
+    SELECT * FROM tblCourseVijaya
+END
+============================================================================================
+💻 Model: CourseVijaya.cs
+using System.ComponentModel.DataAnnotations;
+
+namespace CourseManagementVijaya.Models
+{
+    public class CourseVijaya
+    {
+        public int CourseId { get; set; }
+
+        [Required(ErrorMessage = "Course Name is required")]
+        public string CourseName { get; set; }
+
+        [Required(ErrorMessage = "Course Code is required")]
+        [RegularExpression("^[a-zA-Z0-9]+$", ErrorMessage = "Course Code must be alphanumeric")]
+        public string CourseCode { get; set; }
+
+        public string Description { get; set; }
+
+        [DataType(DataType.Date)]
+        public DateTime? CourseStartDate { get; set; }
+    }
+}
+==========================================================================================
+🔧 Repository Interface: ICourseRepositoryVijaya.cs
+using CourseManagementVijaya.Models;
+using System.Collections.Generic;
+
+namespace CourseManagementVijaya.Repositories
+{
+    public interface ICourseRepositoryVijaya
+    {
+        List<CourseVijaya> GetAllCoursesVijaya();
+        void InsertCourseVijaya(CourseVijaya course);
+        void DeleteCourseVijaya(int courseId);
+    }
+}
+=======================================================================================
+
+🔧 Repository Implementation: CourseRepositoryVijaya.cs
+using CourseManagementVijaya.Models;
+using Microsoft.Data.SqlClient;
+using System.Data;
+
+namespace CourseManagementVijaya.Repositories
+{
+    public class CourseRepositoryVijaya : ICourseRepositoryVijaya
+    {
+        private readonly string _connectionString;
+
+        public CourseRepositoryVijaya(IConfiguration configuration)
+        {
+            _connectionString = configuration.GetConnectionString("DefaultConnection");
+        }
+
+        public List<CourseVijaya> GetAllCoursesVijaya()
+        {
+            List<CourseVijaya> courses = new();
+            using SqlConnection con = new(_connectionString);
+            SqlCommand cmd = new("GetAllCoursesVijaya", con) { CommandType = CommandType.StoredProcedure };
+            con.Open();
+            SqlDataReader dr = cmd.ExecuteReader();
+            while (dr.Read())
+            {
+                courses.Add(new CourseVijaya
+                {
+                    CourseId = Convert.ToInt32(dr["CourseId"]),
+                    CourseName = dr["CourseName"].ToString(),
+                    CourseCode = dr["CourseCode"].ToString(),
+                    Description = dr["Description"].ToString(),
+                    CourseStartDate = dr["CourseStartDate"] as DateTime?
+                });
+            }
+            return courses;
+        }
+
+        public void InsertCourseVijaya(CourseVijaya course)
+        {
+            using SqlConnection con = new(_connectionString);
+            SqlCommand cmd = new("InsertCourseVijaya", con) { CommandType = CommandType.StoredProcedure };
+            cmd.Parameters.AddWithValue("@CourseName", course.CourseName);
+            cmd.Parameters.AddWithValue("@CourseCode", course.CourseCode);
+            cmd.Parameters.AddWithValue("@Description", course.Description ?? "");
+            cmd.Parameters.AddWithValue("@CourseStartDate", course.CourseStartDate ?? DateTime.Now);
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+        public void DeleteCourseVijaya(int courseId)
+        {
+            using SqlConnection con = new(_connectionString);
+            SqlCommand cmd = new("DeleteCourseVijaya", con) { CommandType = CommandType.StoredProcedure };
+            cmd.Parameters.AddWithValue("@CourseId", courseId);
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+    }
+}
+===========================================================================================
+🧭 Controller: CourseControllerVijaya.cs
+using CourseManagementVijaya.Models;
+using CourseManagementVijaya.Repositories;
+using Microsoft.AspNetCore.Mvc;
+
+namespace CourseManagementVijaya.Controllers
+{
+    public class CourseControllerVijaya : Controller
+    {
+        private readonly ICourseRepositoryVijaya _repo;
+
+        public CourseControllerVijaya(ICourseRepositoryVijaya repo)
+        {
+            _repo = repo;
+        }
+
+        public IActionResult ViewCourseVijaya()
+        {
+            var courses = _repo.GetAllCoursesVijaya();
+            return View(courses);
+        }
+
+        [HttpGet]
+        public IActionResult AddEditCourseVijaya()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult AddEditCourseVijaya(CourseVijaya course)
+        {
+            if (ModelState.IsValid)
+            {
+                _repo.InsertCourseVijaya(course);
+                return RedirectToAction("ViewCourseVijaya");
+            }
+            return View(course);
+        }
+
+        public IActionResult DeleteCourseVijaya(int id)
+        {
+            return View(_repo.GetAllCoursesVijaya().FirstOrDefault(c => c.CourseId == id));
+        }
+
+        [HttpPost]
+        public IActionResult ConfirmDeleteCourseVijaya(int id)
+        {
+            _repo.DeleteCourseVijaya(id);
+            return RedirectToAction("ViewCourseVijaya");
+        }
+    }
+}
+============================================================================================
+🖥️ View: ViewCourseVijaya.cshtml
+@model List<CourseManagementVijaya.Models.CourseVijaya>
+
+<h2>Courses</h2>
+<a asp-action="AddEditCourseVijaya" class="btn btn-primary">Add Course</a>
+
+<table class="table table-bordered mt-3">
+    <tr>
+        <th>Name</th>
+        <th>Code</th>
+        <th>Description</th>
+        <th>Start Date</th>
+        <th>Actions</th>
+    </tr>
+    @foreach (var course in Model)
+    {
+        <tr>
+            <td>@course.CourseName</td>
+            <td>@course.CourseCode</td>
+            <td>@course.Description</td>
+            <td>@course.CourseStartDate?.ToString("yyyy-MM-dd")</td>
+            <td>
+                <a asp-action="DeleteCourseVijaya" asp-route-id="@course.CourseId" class="btn btn-danger"
+                   onclick="return confirm('Are you sure you want to delete this course?');">Delete</a>
+            </td>
+        </tr>
+    }
+</table>
+==============================================================================================
+🧾 View: AddEditCourseVijaya.cshtml
+@model CourseManagementVijaya.Models.CourseVijaya
+
+<h2>Add Course</h2>
+
+<form asp-action="AddEditCourseVijaya" method="post">
+    <div class="form-group">
+        <label asp-for="CourseName"></label>
+        <input asp-for="CourseName" class="form-control" />
+        <span asp-validation-for="CourseName" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="CourseCode"></label>
+        <input asp-for="CourseCode" class="form-control" />
+        <span asp-validation-for="CourseCode" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Description"></label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+    </div>
+    <div class="form-group">
+        <label asp-for="CourseStartDate"></label>
+        <input asp-for="CourseStartDate" type="date" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-success">Submit</button>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+⚙️ appsettings.json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=YOUR_SERVER_NAME;Database=YOUR_DB;Trusted_Connection=True;"
+  },
+  ...
+}
+
+difference b/w mvc & mvc core
+
+    <div class="col-2">
+        @Html.RadioButtonFor(n => n.gender, "Male")Male
+        @Html.RadioButtonFor(n => n.gender, "Female")Female
+    </div>
+</div><br />
+<div class="row">
+    <div class="col-1">
+        @Html.LabelFor(n => n.language)
+    </div>
+    <div class="col-2">
+
+        @Html.CheckBoxFor(n => n.Tel, false)Tel
+        @Html.CheckBoxFor(n => n.Hin, false)Hin
+        @Html.CheckBoxFor(n => n.Eng, false)Eng
+    </div>
+</div><br />
+
+<div class="row">
+    <div class="col-1">
+
+        @Html.LabelFor(m => m.Sid)
+    </div>
+    <div class="col-2">
+        @Html.DropDownListFor(m => m.Sid, new SelectList(ViewBag.StateList, "Value", "Text"), "Select State", new { id = "Sid" })
+    </div>
+</div><br />
+
+
+@*  @Html.LabelFor(m => m.Cid)
+    @Html.DropDownList("City", new SelectList(new List<SelectListItem>(), "Value", "Text"), "Select City", new { id = "Cid" })*@
+
+<div class="row">
+    <div class="col-1">
+        @Html.LabelFor(m => m.Cid)
+    </div>
+    <div class="col-2">
+        @Html.DropDownList("Cid", new SelectList(new List<SelectListItem>(), "Value", "Text"), "Select City", new { id = "Cid" })
+    </div>
+</div><br />
+<div class="row">
+    <div class="col-1">
+
+        @Html.LabelFor(m => m.Bgroup)
+    </div>
+    <div class="col-2">
+        @Html.DropDownListFor(m => m.Bgroup, new SelectList(ViewBag.Bglist, "Value", "Text"), "Select Bgroup", new { id = "BGroup" })
+
+    </div>
+
+=====================================================================================
+.NetCore
+
+  <div class="col-4">
+                    <input asp-for="gender" type="radio" value="Male" /> Male
+                    <input asp-for="gender" type="radio" value="Female" /> Female
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label>Language</label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="Tel" type="checkbox" /> Tel
+                    <input asp-for="Hin" type="checkbox" /> Hin
+                    <input asp-for="Eng" type="checkbox" /> Eng
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="Sid" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <select asp-for="Sid" class="form-select" asp-items="ViewBag.StateList">
+                        <option value="">Select State</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="Cid" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <select asp-for="Cid" class="form-select" id="Cid">
+                        <option value="">Select City</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="Bgroup" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <select asp-for="Bgroup" class="form-select" asp-items="ViewBag.Bglist">
+                        <option value="">Select Bgroup</option>
+                    </select>
+                </div>
+            </div>
+=================================================================================
+.netcore ,radio,checkbox,dropdowm controller using.
+
+@model BloodBankproject.Models.RegisterModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/Style.css" />
+</head>
+<body>
+    <div class="container">
+        <h2>Register</h2>
+        <form asp-action="Register" method="post">
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="uname" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="uname" class="form-control" />
+                    <span asp-validation-for="uname" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="pwd" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="pwd" class="form-control" type="password" />
+                    <span asp-validation-for="pwd" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="cpwd" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="cpwd" class="form-control" type="password" />
+                    <span asp-validation-for="cpwd" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="gender" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="gender" type="radio" value="Male" /> Male
+                    <input asp-for="gender" type="radio" value="Female" /> Female
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label>Language</label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="Tel" type="checkbox" /> Tel
+                    <input asp-for="Hin" type="checkbox" /> Hin
+                    <input asp-for="Eng" type="checkbox" /> Eng
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="Sid" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <select asp-for="Sid" class="form-select" asp-items="ViewBag.StateList">
+                        <option value="">Select State</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="Cid" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <select asp-for="Cid" class="form-select" id="Cid">
+                        <option value="">Select City</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="Bgroup" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <select asp-for="Bgroup" class="form-select" asp-items="ViewBag.Bglist">
+                        <option value="">Select Bgroup</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="Phno" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="Phno" class="form-control" />
+                    <span asp-validation-for="Phno" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <label asp-for="Email" class="form-label"></label>
+                </div>
+                <div class="col-4">
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-2">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+                <div class="col-2">
+                    <button type="reset" class="btn btn-secondary">Clear</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#Sid').change(function () {
+                var sid = $(this).val();
+                var citySelect = $('#Cid');
+                citySelect.empty().append('<option value="">Select City</option>');
+
+                if (sid) {
+                    $.getJSON('/User/GetCities', { sid: sid }, function (cities) {
+                        $.each(cities, function (index, city) {
+                            citySelect.append('<option value="' + city.value + '">' + city.text + '</option>');
+                        });
+                    });
+                }
+            });
+        });
+    </script>
+
+    @* For client-side validation *@
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>
+
+| Regex | Meaning            | Example Match     |
+| ----- | ------------------ | ----------------- |
+| `\d`  | Digit              | `5` in `"Room 5"` |
+| `\D`  | Non-digit          | `R` in `"Room 5"` |
+| `\w`  | Word character     | `A` in `"@A#"`    |
+| `\W`  | Non-word character | `@` or `#`        |
+| `\s`  | Whitespace         | space, tab        |
+| `\S`  | Non-whitespace     | letter, digit     |
+
+[RegularExpression(@"^\S+$", ErrorMessage = "No spaces allowed.")]
+[RegularExpression(@"^[A-Za-z]+$", ErrorMessage = "Only alphabets are allowed, no spaces.")]
+[RegularExpression(@"^[A-Za-z ]+$", ErrorMessage = "Only letters and spaces are allowed.")]
+[RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*\W).{6,}$", 
+    ErrorMessage = "Password must contain at least 1 uppercase, 1 lowercase, 1 digit, 1 special character, and be at least 6 characters long.")]
+
+| Shorthand | Meaning                | Matches                                                     | Example                                |
+| --------- | ---------------------- | ----------------------------------------------------------- | -------------------------------------- |
+| `\d`      | **Digit**              | Any single digit (`0–9`)                                    | `\d{3}` → Matches `123`, `456`         |
+| `\D`      | **Non-digit**          | Any character except `0–9`                                  | `\D` → Matches `A`, `#`, `@`           |
+| `\w`      | **Word character**     | Any letter, digit, or underscore (`a-z`, `A-Z`, `0-9`, `_`) | `\w+` → Matches `Name123`, `user_name` |
+| `\W`      | **Non-word character** | Anything except `a-z`, `A-Z`, `0-9`, `_`                    | `\W` → Matches `@`, `#`, ` `           |
+| `\s`      | **Whitespace**         | Space, tab, newline                                         | `\s+` → Matches spaces or tabs         |
+| `\S`      | **Non-whitespace**     | Any character except space, tab, newline                    | `\S+` → Matches `HelloWorld`           |
+
+✅ \W in Regular Expressions
+📘 Definition:
+\W matches any character that is NOT a word character.
+A word character includes:
+
+a–z (lowercase letters)
+
+A–Z (uppercase letters)
+
+0–9 (digits)
+
+_ (underscore)
+
+So, \W matches anything other than these.
+
+🔧 Examples of Characters Matched by \W:
+@ (at symbol)
+
+# (hash)
+
+! (exclamation)
+
+. (dot)
+
+, (comma)
+
+$ (dollar sign)
+
+( ) { } [ ]
+
+* & ^ %
+
+space ( )
+
+tab (\t)
+
+newline (\n)
+
+📝 Regex Example
+
+[RegularExpression(@"\W", ErrorMessage = "Only special characters allowed")]
+This will match:
+
+#
+
+@
+
+!
+
+%
+
+It will NOT match:
+
+A
+
+z
+
+5
+
+_
+
+💡 Practical Use Example:
+Regex to ensure a password contains at least one special character:
+
+regex
+
+^(?=.*\W).{6,}$
+Explanation:
+
+(?=.*\W) → at least one non-word character
+
+.{6,} → total minimum 6 characters
+
+Want more examples or practice questions on this?
+
+
+
+
+
+
+
+
+^(?=.*\W).{6,}$  example password
+
+
+
+Sure! Let’s break down this regex first and then look at example passwords:
+
+✅ Regex Explanation:
+regex
+
+^(?=.*\W).{6,}$
+🧠 Meaning:
+^ → Start of string
+
+(?=.*\W) → Positive lookahead: ensure at least one special character (i.e., NOT a-z, A-Z, 0-9, or _)
+
+.{6,} → Allow any 6 or more characters
+
+$ → End of string
+
+🧪 Valid Password Examples (✔️ Match):
+These all have at least one special character and length ≥ 6:
+
+pass@1
+
+hello#world
+
+123456!
+
+A@bC$D
+
+dev@123
+
+#StrongPassword1
+
+❌ Invalid Password Examples (❌ No Match):
+These either don’t contain special characters or are too short:
+
+abc123 ❌ (no special character)
+
+123456 ❌ (no special character)
+
+@12 ❌ (length < 6)
+
+abcdef ❌ (no special character)
+
+🔒 Use Case:
+If you're validating a password and want to enforce at least one special character, this regex is great. You can combine it with others to also require digits, uppercase, etc.
+
+Want that version too (with all rules)?
+
+
+
+
+
+
+
+
+?=.*\W positive lookahead means
+
+
+
+
+✅ (?=.*\W) is called a positive lookahead in regular expressions.
+🔍 What it does:
+(?=...) is a lookahead — it checks ahead in the string to see if a certain pattern exists, without consuming characters.
+
+✨ Specifically:
+(?=.*\W)
+
+. → any character
+
+* → zero or more of the previous (so .* means: any number of characters)
+
+\W → a non-word character, i.e., anything not a-z, A-Z, 0-9, or _
+
+So: .*\W means "somewhere in the string, there is a non-word character"
+
+✅ The lookahead checks if this condition is true — if it is, the whole regex continues to evaluate.
+
+🧠 What “positive lookahead” means:
+"Positive" = it must be true
+
+"Lookahead" = looks ahead in the string
+
+(?=.*\W) means:
+👉 "There must be at least one special character somewhere after this point."
+
+🧪 Example:
+Regex: ^(?=.*\W).{6,}$
+Test string: "dev@123"
+
+(?=.*\W) → ✔️ @ is a special character
+
+.{6,} → ✔️ 7 characters
+✅ So it matches.
+
+Let me know if you want to try lookbehind or combine multiple lookaheads!
+
+
+
+
+
+
+

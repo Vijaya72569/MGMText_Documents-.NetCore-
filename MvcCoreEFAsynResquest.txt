@@ -1,0 +1,183 @@
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+}
+
+
+using Microsoft.EntityFrameworkCore;
+
+public class ApplicationDbContext : DbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+    
+    public DbSet<Product> Products { get; set; }
+}
+
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=MvcCrudDb;Trusted_Connection=True;"
+  }
+}
+
+
+using Microsoft.EntityFrameworkCore;
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllersWithViews();
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+var app = builder.Build();
+app.UseStaticFiles();
+app.UseRouting();
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Product}/{action=Index}");
+
+app.Run();
+
+
+
+
+// MvcCore Curd using EF
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
+
+public class ProductController : Controller
+{
+    private readonly ApplicationDbContext _context;
+
+    public ProductController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<IActionResult> Index()
+    {
+        return View();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetProducts()
+    {
+        var products = await _context.Products.ToListAsync();
+        return Json(products);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] Product product)
+    {
+        if (ModelState.IsValid)
+        {
+            _context.Products.Add(product);
+            await _context.SaveChangesAsync();
+            return Json(product);
+        }
+        return BadRequest();
+    }
+
+    [HttpPut]
+    public async Task<IActionResult> Update([FromBody] Product product)
+    {
+        if (ModelState.IsValid)
+        {
+            _context.Products.Update(product);
+            await _context.SaveChangesAsync();
+            return Json(product);
+        }
+        return BadRequest();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var product = await _context.Products.FindAsync(id);
+        if (product == null) return NotFound();
+
+        _context.Products.Remove(product);
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
+}
+
+
+// index.cshtml
+
+@{
+    ViewData["Title"] = "Product Management";
+}
+
+<h2>Product Management</h2>
+
+<div>
+    <input type="text" id="name" placeholder="Product Name" />
+    <input type="number" id="price" placeholder="Price" />
+    <button onclick="createProduct()">Add Product</button>
+</div>
+
+<table border="1">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="productTable"></tbody>
+</table>
+
+<script>
+    async function loadProducts() {
+        const response = await fetch('/Product/GetProducts');
+        const products = await response.json();
+        let tableContent = '';
+        products.forEach(product => {
+            tableContent += `<tr>
+                <td><input type="text" value="${product.name}" id="name_${product.id}" /></td>
+                <td><input type="number" value="${product.price}" id="price_${product.id}" /></td>
+                <td>
+                    <button onclick="updateProduct(${product.id})">Update</button>
+                    <button onclick="deleteProduct(${product.id})">Delete</button>
+                </td>
+            </tr>`;
+        });
+        document.getElementById('productTable').innerHTML = tableContent;
+    }
+
+    async function createProduct() {
+        const name = document.getElementById('name').value;
+        const price = document.getElementById('price').value;
+
+        await fetch('/Product/Create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, price })
+        });
+        loadProducts();
+    }
+
+    async function updateProduct(id) {
+        const name = document.getElementById(`name_${id}`).value;
+        const price = document.getElementById(`price_${id}`).value;
+
+        await fetch('/Product/Update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name, price })
+        });
+        loadProducts();
+    }
+
+    async function deleteProduct(id) {
+        await fetch(`/Product/Delete/${id}`, { method: 'DELETE' });
+        loadProducts();
+    }
+
+    loadProducts();
+</script>

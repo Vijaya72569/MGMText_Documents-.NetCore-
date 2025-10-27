@@ -1,0 +1,226 @@
+go to visual studio2022->
+create new project->asp.net webapplication(model-view-controller)->next->
+project name:WebAppFname
+next->.dot net core 8.0->create
+appsettings.json
+
+  "ConnectionStrings": {
+    "getcon": "server=localhost;database=mydb;Integrated Security=SSPI;Encrypt=True;TrustServerCertificate=True;"
+  }
+
+go to tools->Nuget Package Manager->Manage Nuget Package for->select->All(package source1->https://api.nuget.org/v3/index.json
+package source2->https://package.nuget.org/api/v2)
+Browse->Microsoft.Data.SqlClient->select project->version->5.1.0->install->IAccept->ok
+
+right click on Model->add-> class->name:UserModel->add
+UserModel.cs
+
+using System.ComponentModel.DataAnnotations;
+
+namespace WebAppFname.Models
+{
+    public class UserModel
+    {
+      
+
+        [Required]
+        [Display(Name = "First Name")]
+        public string? FirstName { get; set; }
+
+        [Required]
+        [Display(Name = "Last Name")]
+        public string? LastName { get; set; }
+
+        //public string FullName => $"{FirstName} {LastName}";
+        public string FullName => FirstName + LastName;
+    }
+
+}
+
+right click on controller add controller ->controller empty->name:UserController->add
+
+UserController.cs
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Server.HttpSys;
+using System;
+using WebAppFname.Models;
+
+namespace WebAppFname.Controllers
+{
+    public class UserController : Controller
+    {
+        public IActionResult Index()
+        {
+            return View();
+        }
+        [HttpPost]
+        public IActionResult Index(UserModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                ViewBag.FullName = model.FullName;
+            }
+            return View(model);
+        }
+           
+       
+    }
+}
+
+right click on index[HttpPost]->add view ->Razor view empty->addname:index->add
+
+index.cshtml
+
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+@model WebAppFname.Models.UserModel
+
+<h2>Enter Your Name</h2>
+
+<form asp-action="Index" method="post">
+    <div>
+        <label asp-for="FirstName"></label>
+        <input asp-for="FirstName" />
+        <span asp-validation-for="FirstName" style="color:red"></span>
+    </div>
+    <div>
+        <label asp-for="LastName"></label>
+        <input asp-for="LastName" />
+        <span asp-validation-for="LastName" style="color:red"></span>
+    </div>
+    <button type="submit">Show Full Name</button>
+</form>
+
+@if (ViewBag.FullName != null)
+{
+    <h3>Your Full Name: @ViewBag.FullName</h3>
+}
+
+program.cs
+
+  pattern: "{controller=User}/{action=Index}/{id?}");
+
+Run the application
+
+
+Maths.cs
+
+namespace WebAppFname.Models
+{
+    public class Maths
+    {
+        public int num1 {  get; set; }
+        public int num2 { get; set; }
+        public  int sum=>num1 + num2;
+        public int sub=>num1 - num2;
+        public int mul=>num1 * num2;
+        public int div=>num1 / num2;
+
+    }
+}
+
+
+MathsController.cs
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Server.HttpSys;
+using System;
+using WebAppFname.Models;
+
+namespace WebAppFname.Controllers
+{
+    public class MathsController : Controller
+    {
+
+  public IActionResult Index() 
+        { 
+            return View();
+        }
+        [HttpPost]
+        public IActionResult Index(Maths model ,string str)
+        {
+            if (ModelState.IsValid)
+            {
+                if (str == "Add")
+                {
+                    ViewBag.sum = model.sum;
+                }
+               else if (str == "Sub")
+                {
+                    ViewBag.sub = model.sub;
+                }
+                else if (str == "Mul")
+                {
+                    ViewBag.mul = model.mul;
+                }
+                else if (str == "Div")
+                {
+                    ViewBag.div = model.div;
+                }
+
+
+               
+            }
+            return View(model);
+            
+        }
+       
+           
+       
+    }
+}
+
+
+Index.cshtml
+
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+@model WebAppFname.Models.Maths
+<form asp-controller="Maths" method="post">
+    <div>
+        <label asp-for="num1"></label>
+        <input asp-for="num1" />
+    </div>
+    <div>
+        <label asp-for="num2"></label>
+        <input asp-for="num2" />
+    </div>
+    <input type="submit" value="Add" name="str"/>
+    <input type="submit" value="Sub" name="str" />
+    <input type="submit" value="Mul" name="str" />
+    <input type="submit" value="Div" name="str" />
+</form>
+@if (ViewBag.sum != null)
+{
+    
+    <h1>Sum:@ViewBag.sum</h1>
+}
+
+@if (ViewBag.sub != null)
+{
+
+    <h1>Sub:@ViewBag.sub</h1>
+}
+@if (ViewBag.mul != null)
+{
+
+    <h1>Mul:@ViewBag.mul</h1>
+}
+@if (ViewBag.div != null)
+{
+
+    <h1>Div:@ViewBag.div</h1>
+}
+
+program.cs
+
+  pattern: "{controller=Maths}/{action=Index}/{id?}");
+
+run the application

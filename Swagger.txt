@@ -1,0 +1,44 @@
+✅ What is Swagger UI?
+Swagger is an interactive web interface that lets you:
+
+📖 View all your API endpoints (GET, POST, etc.)
+
+🧪 Test them directly from the browser
+
+📝 See request/response models and parameters
+
+
+
+| Code                  | When to Use                                              |
+| --------------------- | -------------------------------------------------------- |
+| `return NoContent();` | Standard for successful `DELETE` with no return body     |
+| `return Ok();`        | If you want to return a message or data                  |
+| `return NotFound();`  | If the product doesn't exist (you should check for this) |
+
+
+| Code                  | Purpose                                          |
+| --------------------- | ------------------------------------------------ |
+| `return NoContent();` | Standard for PUT when no response body is needed |
+| `return Ok(product);` | Used when you want to return the updated product |
+
+return CreatedAtAction(nameof(Get), new { id = product.PId }, product);
+
+📦 "Return a 201 Created response, and include a Location header pointing to the GET endpoint for the newly created resource."
+
+HTTP 201 Created
+Location: https://localhost/api/product/3
+Body: {
+  "pId": 3,
+  "name": "Tablet",
+  "price": 25000
+}
+
+
+public IActionResult Post(Product product)
+{
+    _productService.Add(product);
+    return Ok(product); // or return Created("uri", product);
+}
+
+HTTP 200 OK
+Body: { "pId": 3, "name": "Tablet", "price": 25000 }

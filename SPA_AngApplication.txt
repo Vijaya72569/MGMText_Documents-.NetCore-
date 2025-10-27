@@ -1,0 +1,182 @@
+go to visual studio code->open file->Angular->select folder
+go to terminal->new terminal->
+D:AngularP> ng new spa->enter->yes->enter
+D:AngularP>cd spa->enter
+==================================================
+create components
+================================================
+D:AngularP>spa>ng g c header->enter
+D:AngularP>spa>ng g c about->enter
+D:AngularP>spa>ng g c contact->enter
+D:AngularP>spa>ng g c login->enter
+D:AngularP>spa>ng g c success->enter
+D:AngularP>spa>ng g s auth->enter
+
+=====================================================================
+app.service.ts
+
+import { Injectable } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+
+  constructor() { }
+  islogin = false;
+  username: string = '';
+  login(username: string): void {
+    this.islogin = true;
+    this.username = username;
+  }
+  logout(): void {
+    this.islogin = false;
+    this.username = '';
+  }
+
+}
+================================================================
+app.routes.ts
+
+import { Routes } from '@angular/router';
+import { HomeComponent } from './home/home.component';
+import { AboutComponent } from './about/about.component';
+import { ContactComponent } from './contact/contact.component';
+import { LoginComponent } from './login/login.component';
+import { SuccessComponent } from './success/success.component';
+
+export const routes: Routes = [
+    {path:'home',component: HomeComponent},
+    {path:'about',component: AboutComponent},
+    {path:'contact',component: ContactComponent},
+    {path:'login',component: LoginComponent},
+     {path:'success',component: SuccessComponent},
+    {path:'',redirectTo: '/home',pathMatch: 'full' },
+];
+
+=========================================================
+login.ts
+
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AuthService } from '../auth.service';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-login',
+  imports: [FormsModule , CommonModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css'
+})
+export class LoginComponent {
+username: string = '';
+password: string = '';
+message: string = '';
+constructor(public authservice: AuthService, private router: Router) 
+{ 
+
+}
+login() 
+{
+  if (this.username === "mygominds" && this.password === "mgm1234") 
+    {
+    this.authservice.login(this.username);
+    this.message = 'Login successful!';
+    alert('Login successful!');
+    this.router.navigate(['/success']);
+    } 
+  else 
+  {
+    this.message = 'Invalid username or password.';
+  }
+}
+}
+====================================================================
+login.html
+
+<p>login works!</p>
+<div>
+<label>Enter UserName:</label>
+<input type ="text" [(ngModel)]="username" placeholder="username"/>
+<br>
+<label>Enter Password:</label>
+<input type ="password" [(ngModel)]="password" placeholder="password"/>
+<br>
+<input type="submit" value="Submit" (click)="login()"/>
+<br>
+<p>{{message}}</p>
+</div>
+<div *ngIf="authservice.islogin">
+    <h2>Welcome to {{authservice.username}}</h2>
+</div> 
+====================================================
+app.header.ts
+
+import { Component } from '@angular/core';
+import { Router, RouterLink } from "@angular/router";
+import { AuthService } from '../auth.service';
+import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+
+
+@Component({
+  selector: 'app-header',
+  standlone:true,
+  imports: [RouterLink , FormsModule , CommonModule],
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.css']
+})
+export class HeaderComponent 
+{
+constructor(public authservice: AuthService, private router: Router)
+{
+
+}
+Logout()
+{
+this.authservice.logout();
+this.router.navigate(['/login']);
+}
+}
+=================================================================
+app.header.html
+
+<p>header works!</p>
+<a routerLink="/home">Home</a>&nbsp;
+<a routerLink="/about">About Us</a>&nbsp;
+<a routerLink="/contact">Contact Us</a>&nbsp;
+<a routerLink="login" *ngIf="!authservice.islogin">Login</a>&nbsp;
+<button *ngIf="authservice.islogin" (click)="Logout()">Logout</button>
+<button (click)="Logout()">Logout </button>
+<span *ngIf="authservice.islogin">welcome {{ authservice.username}} </span>
+
+===========================================================
+app.component.ts
+
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { HeaderComponent } from './header/header.component';
+
+@Component({
+  selector: 'app-root',
+
+  imports: [RouterOutlet , HeaderComponent], // imports this components
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css'
+})
+export class AppComponent {
+  title = 'spanew';
+}
+
+============================================================
+app.component.html
+
+<div>
+  <app-header></app-header>
+  </div>
+  <div>
+    <router-outlet></router-outlet>
+</div>
+============================================================= 
+

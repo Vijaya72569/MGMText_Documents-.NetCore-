@@ -1,0 +1,347 @@
+--use Mvc db june20 2025
+
+CREATE TABLE Student (
+    Sid INT PRIMARY KEY IDENTITY(1,1),
+    Name NVARCHAR(100),
+    Email NVARCHAR(100),
+    ContactNumber Bigint,
+    Gender NVARCHAR(10),
+    Course NVARCHAR(50),
+    Hobbies NVARCHAR(100),
+    Skills NVARCHAR(100)
+);
+
+============================================================================
+Open visual studio 2022->
+Create new project->asp.net webapplication(model-view-controller)->next->
+Project name:EFCURDCORE8
+Next->.dot net core 8.0->create
+Click on tools->install nuget manager->manage nuget packages for solution
+Click on-setting icon
+Click on-add icon
+name:package source1
+source:https://packages.nuget.org/api/v2
+->update
+click on-add icon
+name:package source2
+source:https://api.nuget.org/v3/index.json
+->update
+->ok
+click on Browse:
+Microsoft.EntityFrameworkCore->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkDesign->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkSqlServer->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkTools->select project->version:8.0.0->install->ok->I Accept
+
+Appsettings.json
+
+"ConnectionStrings": {
+  "getcon": "server=localhost;Initial Catalog=mygominds;Integrated Security=SSPI;TrustServerCertificate=True;"
+  
+}
+
+Right click on Model->add->class->name:StudentModel->add
+
+StudentModel.ts
+
+using System.ComponentModel.DataAnnotations;
+
+namespace RegisterForm.Models
+{
+    public class StudentModel
+    {
+        public int Sid {  get; set; }
+        [Required]
+        public string? Name {  get; set; }
+        [Required]
+        [EmailAddress]
+        public string? Email {  get; set; }
+        [Required]
+        [RegularExpression(@"^[789]\d{9}$",ErrorMessage="Phone number start with 7,8,9 only 10 digits")]
+        public long ContactNumber {  get; set; }
+        [Required]
+        public string? Gender { get; set; }
+        [Required]
+        public string? Course { get; set; }
+        public List<string>? Hobbies { get; set; }
+        public List<string>? Skills { get; set; }
+
+        public string hobbies => string.Join(",", Hobbies ?? new List<string>());
+
+        public string skillls=>string.Join(",",Skills ?? new List<string>());
+
+      
+
+    }
+}
+
+================================================================================================
+Right click on Model->add->class->name:StudentRepository->add
+
+using Microsoft.Data.SqlClient;
+
+namespace RegisterForm.Models
+{
+    public class StudentRepository
+    {
+        private readonly string constring;
+        public  StudentRepository(IConfiguration configuration)
+        {
+            constring = configuration.GetConnectionString("getcon")!;
+        }
+        public void Add(StudentModel student)
+        {
+            SqlConnection con = new SqlConnection(constring);
+            string query = @"Insert into Student(Name,Email,ContactNumber,Course,Hobbies,Skills) values(@Name,@Email,@ContactNumber,@Course,@Hobbies,@Skills)";
+
+           SqlCommand cmd=new SqlCommand(query, con);
+            cmd.CommandType=System.Data.CommandType.Text;
+            cmd.Parameters.AddWithValue("@Name", student.Name);
+            cmd.Parameters.AddWithValue("@Email", student.Email);
+            cmd.Parameters.AddWithValue("@ContactNumber", student.ContactNumber);
+            cmd.Parameters.AddWithValue("@Course", student.Course);
+            cmd.Parameters.AddWithValue("@Hobbies",string.Join(",",student.Hobbies ?? new List<string>()));
+            cmd.Parameters.AddWithValue("@Skills",string.Join(",", student.Skills ?? new List<string>()));
+           con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+
+
+        }
+
+        public List<StudentModel> GetStudents()
+        {
+            List<StudentModel> students = new List<StudentModel>();
+            SqlConnection con = new SqlConnection(constring);
+            con.Open();
+            string query = "Select * from Student";
+            SqlCommand cmd = new SqlCommand(query, con);
+            cmd.CommandType= System.Data.CommandType.Text;
+            SqlDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                students.Add(new StudentModel()
+                {
+                    Sid = Convert.ToInt32(reader["SiD"]),
+                    Name = reader["Name"].ToString(),
+                    Email = reader["Email"].ToString(),
+                    ContactNumber = Convert.ToInt64(reader["ContactNumber"]),
+                    Course = reader["Course"].ToString(),
+                    Hobbies = reader["Hobbies"].ToString()?.Split(",").ToList(),
+                    Skills = reader["Skills"].ToString()?.Split(",").ToList()
+
+                });
+            }
+            return students;
+
+        }
+
+
+    }
+}
+====================================================================================
+right click on controller->add controller->mvc controller empty->name:EmployeeController.ts->enter
+
+using Microsoft.AspNetCore.Mvc;
+using RegisterForm.Models;
+
+namespace RegisterForm.Controllers
+{
+    public class StudentController : Controller
+    {
+        private readonly StudentRepository _studentRepository;
+
+        private readonly List<string> Courses = new() { "B-Tech", "B-Sc", "MSC", "MBA" };
+        private readonly List<string> Skills = new() { "C#", "Java", "Python", "Angular" };
+        private readonly List<string> Hobbies = new() { "Reading", "Traveling", "Music", "Gaming" };
+
+        public StudentController(StudentRepository studentRepository) 
+        
+        {
+        _studentRepository = studentRepository;
+        
+        }
+
+        public IActionResult Index()
+        {
+           var students= _studentRepository.GetStudents().ToList();
+            return View(students);
+        }
+        public void LoadViewData()
+        {
+            ViewBag.courses=Courses;
+            ViewBag.skills=Skills;
+            ViewBag.hobbies=Hobbies;
+        }
+
+        public IActionResult Register()
+        {
+            LoadViewData();
+            return View(new StudentModel());
+
+        }
+        [HttpPost]
+        public IActionResult Register(StudentModel student)
+        {
+            if(ModelState.IsValid)
+            {
+                _studentRepository.Add(student);
+                return RedirectToAction("Index");
+            }
+            LoadViewData();
+            return View(student);
+        }
+    }
+}
+=======================================================================================
+
+Right click on -Index()->add view->razor view ->
+name:Index
+template:list
+model class:studentModel.cs
+
+@model IEnumerable<RegisterForm.Models.StudentModel>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Register">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+           <th>
+               Sid
+           </th>
+            <th>Name</th>
+             <th>Email</th>
+            <th>Contact</th>
+            <th>Course</th>
+            <th>Hobbies</th>
+            <th>Skills</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+                <td>@item.Sid </td>
+                <td>@item.Name </td>
+                <td>@item.Email </td>
+                <td>@item.ContactNumber </td>
+                <td>@item.Course </td>
+                <td>@string.Join("," , item.Hobbies) </td>
+                <td>@string.Join(",", item.Skills) </td>
+               
+               
+            <td>
+               
+            </td>
+           
+            <td>
+                @Html.ActionLink("Edit", "Edit", new { /* id=item.PrimaryKey */ }) |
+                @Html.ActionLink("Details", "Details", new { /* id=item.PrimaryKey */ }) |
+                @Html.ActionLink("Delete", "Delete", new { /* id=item.PrimaryKey */ })
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+===================================================================================
+
+Right click on -Register()->add view->razor view ->
+view name:Register
+template:Create
+Model class:studentModel.cs->Add
+
+@model RegisterForm.Models.StudentModel
+
+@{
+    ViewData["Title"] = "Register";
+}
+
+<h1>Register</h1>
+
+<h4>StudentModel</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Register" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Email" class="control-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ContactNumber" class="control-label"></label>
+                <input asp-for="ContactNumber" class="form-control" />
+                <span asp-validation-for="ContactNumber" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label>Gender</label>
+                <input asp-for="Gender"  type="radio" value="Male"/>Male
+                <input asp-for="Gender" type="radio" value="Female" />Female
+                <span asp-validation-for="Gender" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+               <label class="form-control">Course</label>
+               <select asp-for="Course">
+                   <option value="">--select Course</option>
+                    @foreach (var course in ViewBag.courses as List<string>)
+                    {
+                        <option value="@course">@course</option>
+                    }
+                </select>
+                <span asp-validation-for="Course" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label class="form-control">Hobbies</label>
+                @foreach (var hobby in ViewBag.hobbies as List<string>)
+                {
+                    <label>
+                        <input type="checkbox" name="Hobbies" value="@hobby" @(Model.Hobbies!=null && Model.Hobbies.Contains(hobby) ? "checked":"")/> @hobby
+                    </label>
+                }
+              
+            </div>
+            <div class="form-group">
+               <label class="form-control">Skills</label>
+               <select asp-for="Skills" asp-items="new MultiSelectList(ViewBag.skills)" multiple="multiple" size="4"></select>
+               
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+===============================================================================
+Program.cs
+
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<StudentRepository>(); // add this line
+
+  pattern: "{controller=Student}/{action=Index}/{id?}");
+==================================================================================
+
+

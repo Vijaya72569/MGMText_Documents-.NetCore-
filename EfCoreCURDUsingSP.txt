@@ -1,0 +1,65 @@
+_context.Database.ExecuteSqlRaw database is class or method?
+
+
+ChatGPT said:
+Great question! Let's break it down clearly:
+
+🔹 _context.Database → Property
+✅ It’s a property of the DbContext class.
+
+Returns an object of type DatabaseFacade.
+
+csharp
+Copy
+Edit
+public class DbContext
+{
+    public DatabaseFacade Database { get; }
+}
+So, _context.Database gives you access to database-level operations, like running SQL directly, managing transactions, checking connection state, etc.
+
+🔹 ExecuteSqlRaw(...) → Method
+✅ It’s a method of the DatabaseFacade class.
+
+Used to execute raw SQL commands (like INSERT, UPDATE, DELETE, or calling stored procedures).
+
+csharp
+Copy
+Edit
+public int ExecuteSqlRaw(string sql, params object[] parameters);
+It returns an int indicating the number of rows affected.
+
+✅ Together:
+
+_context.Database.ExecuteSqlRaw("EXEC InsertEmp @p0, @p1", "John", 50000);
+_context → Your EF DbContext instance
+
+.Database → Property that gives access to the database connection (DatabaseFacade)
+
+.ExecuteSqlRaw(...) → Method that executes raw SQL/stored procedures
+
+💡 Visual Summary
+
+_context              → Your EmpDbContext
+   .Database          → Property (returns DatabaseFacade)
+      .ExecuteSqlRaw  → Method (executes raw SQL)
+
+
+| Reason                    | Explanation                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------- |
+| 🔐 **Security**           | You can control exactly what queries run in the database and avoid exposing full table access. |
+| 🚀 **Performance**        | SPs are precompiled in SQL Server, which may improve speed for complex logic.                  |
+| 🧠 **Business Logic**     | You can embed complex logic in one place in SQL (like calculations, joins, conditionals).      |
+| 🧾 **Auditing / Logging** | Easier to log what happens in the database.                                                    |
+| 🔁 **Legacy Support**     | You might already have existing stored procedures in old databases.                            |
+===============================================================================================
+
+public List<Employee> GetAll() => 
+    _context.Set<Employee>().FromSqlRaw("EXEC GetAllEmp").ToList();
+
+
+A named method (GetAll)
+
+Not anonymous
+
+Just using shortcut syntax for returning a value.

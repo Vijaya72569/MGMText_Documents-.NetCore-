@@ -1,0 +1,260 @@
+Create StoredProcedures
+
+-- TABLE --Aspmvcdb database---
+use Aspmvcdb
+CREATE TABLE Employees (
+    EId INT PRIMARY KEY IDENTITY(1,1),
+    Name NVARCHAR(100) NOT NULL,
+    Salary DECIMAL(18,2) NOT NULL
+);
+select * from Employees
+-- PROCEDURES
+CREATE PROCEDURE GetAllEmp AS
+BEGIN
+    SELECT EId, Name, Salary FROM Employees;
+END;
+
+EfCoreCurdUsingSp
+Create StoredProcedure in db
+========================================================================
+CREATE PROCEDURE GetEmpById @EId INT AS
+BEGIN
+    SELECT EId, Name, Salary FROM Employees WHERE EId = @EId;
+END;
+
+CREATE PROCEDURE InsertEmp @Name NVARCHAR(100), @Salary DECIMAL(18,2) AS
+BEGIN
+    INSERT INTO Employees (Name, Salary) VALUES (@Name, @Salary);
+END;
+
+CREATE PROCEDURE UpdateEmp @EId INT, @Name NVARCHAR(100), @Salary DECIMAL(18,2) AS
+BEGIN
+    UPDATE Employees SET Name = @Name, Salary = @Salary WHERE EId = @EId;
+END;
+
+CREATE PROCEDURE DeleteEmp @EId INT AS
+BEGIN
+    DELETE FROM Employees WHERE EId = @EId;
+END;
+
+
+open visual studio 2022->
+create new project->asp.net webapplication(model-view-controller)->next->
+project name:EFCURDCORESP8
+next->.dot net core 8.0->create
+click on tools->install nuget manager->manage nuget packages for solution
+click on-setting icon
+click on-add icon
+name:package source1
+source:https://packages.nuget.org/api/v2
+->update
+click on-add icon
+name:package source2
+source:https://api.nuget.org/v3/index.json
+->update
+->ok
+click on Browse:
+Microsoft.EntityFrameworkCore->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkDesign->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkSqlServer->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkTools->select project->version:8.0.0->install->ok->I Accept
+
+Appsettings.json
+
+"ConnectionStrings": {
+  "getcon": "server=localhost;Initial Catalog=mygominds;Integrated Security=SSPI;TrustServerCertificate=True;"
+  
+}
+
+Right click on Model->add->class->name:Employee->add
+
+Employee.cs
+namespace EFCoreCurdSP8.Models
+{
+    public class Employee
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public decimal Salary { get; set; }
+    }
+}
+
+================================================================================================
+Right click on Model->add->class->name:IEmployeeRepository->add
+
+IEmployeeRepository.cs
+
+namespace EFCoreCurdSP8.Models
+{
+    public interface IEmployeeRepository
+    {
+       List<Employee> GetAll();
+        Employee GetById(int id);
+        void Insert(Employee employee);
+        void Update(Employee employee);
+        void Delete(int id);
+    }
+}
+
+=================================================================================================
+Right click on Model->add->class->name:EmpDbContext->add
+using Microsoft.EntityFrameworkCore;
+using EFCoreCurdSP8.Models;
+namespace EFCoreCurdSP8.Models
+{
+    public class EmpDbContext:DbContext
+    {
+
+     public EmpDbContext(DbContextOptions<EmpDbContext> options) : base(options) { }
+        public DbSet<Employee> Employees { get; set; }
+
+    }
+}
+====================================================================================================
+Right click on Model->add->class->name:EmployeeRepository->add
+
+using EFCoreCurdSP8.Models;
+using Microsoft.EntityFrameworkCore;
+namespace EFCoreCurdSP8.Models
+{
+    public class EmployeeRepository:IEmployeeRepository
+    {
+        private readonly EmpDbContext _context;
+        public EmployeeRepository(EmpDbContext context)
+        {
+            _context = context;
+        }
+        public List<Employee> GetAll() => 
+        _context.Set<Employee>().FromSqlRaw("EXEC GetAllEmp").ToList();
+        public Employee? GetById(int id) =>
+            _context.Set<Employee>().FromSqlRaw("EXEC GetEmpById @p0", id).AsEnumerable().FirstOrDefault();
+        public void Insert(Employee emp) =>
+            _context.Database.ExecuteSqlRaw("EXEC InsertEmp @p0,@p1", emp.Name, emp.Salary);
+        public void Update(Employee emp)=>
+            _context.Database.ExecuteSqlRaw("EXEC UpdateEmp @p0,@p1,@p2",emp.Id,emp.Name, emp.Salary);
+        public void Delete(int id) =>
+            _context.Database.ExecuteSqlRaw("EXEC DeleteEmp @p0", id);
+
+    }
+}
+
+
+===============================================================================================
+register the EmpDbContext with DI and SqlServer in Program.ts
+
+Program.ts
+
+var builder = WebApplication.CreateBuilder(args);
+//add this code
+builder.Services.AddDbContext<EmpDbContext>(options =>
+options.UseSqlServer(builder.Configuration.GetConnectionString("con")));
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+
+=====================================================================================================
+right click on controller->add controller->mvc controller empty->name:EmployeeController.ts->enter
+
+EmployeeController.ts
+
+using EFCoreCurdSP8.Models;
+using Microsoft.AspNetCore.Mvc;
+
+namespace EFCoreCurdSP8.Controllers
+{
+    public class EmployeeController : Controller
+    {
+        private readonly IEmployeeRepository _empRepo;
+        public EmployeeController(IEmployeeRepository empRepository)
+        {
+            _empRepo = empRepository;
+        }
+
+        public IActionResult Index(int? editId)
+        {
+            var employees = _empRepo.GetAll();
+            var editemp=editId.HasValue ? _empRepo.GetById(editId.Value) : new Employee();
+            ViewBag.EditId = editemp;
+
+            return View(employees);
+        }
+        [HttpPost]
+        public IActionResult Save(Employee employee)
+        {
+            if (employee.Id == 0)
+            { 
+             _empRepo.Insert(employee);
+            }
+            else
+            {
+                _empRepo.Update(employee);
+            }
+            return RedirectToAction("Index");
+        }
+        public IActionResult Delete(int id) 
+        {
+         _empRepo.Delete(id);
+            return RedirectToAction("Index");
+        
+        }
+    }
+}
+
+===================================================================================================
+Right click on -Index()->add view->razor view empty->
+Name:Index->add
+
+Index.cshtml
+
+@model List<EFCoreCurdSP8.Models.Employee>
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    var Edit = ViewBag.EditId as EFCoreCurdSP8.Models.Employee;
+}
+<h2> Employee CURD</h2>
+<form asp-action="Save" method="post">
+    <input type="hidden" name="Id" value="@Edit.Id" /> <br />
+    <label>Name</label> 
+    <input type="text" name="Name" value="@Edit.Name" /> <br>
+    <label>Salary</label>
+    <input type="number" name="Salary" value="@Edit.Salary" /> <br>
+    <button type="submit">@((Edit.Id ==0) ? "Add":"Update")</button>
+    @if (Edit.Id!=0){
+        <a href="@Url.Action("Index")" >Cancel</a>
+    }
+</form>
+<hr />
+<table border="1">
+    <thead>
+    <tr>
+        <th>ID</th>
+         <th>Name</th>
+        <th>Salary</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+        @foreach(var emp in Model)
+        {
+            <tr>
+                <td>@emp.Id</td>
+                <td>@emp.Name</td>
+                <td>@emp.Salary</td>
+                <td>
+                    <a asp-action="Index" asp-route-editId="@emp.Id">Edit</a>
+                </td>
+                <td>
+                    <a asp-action="Delete" asp-route-id="@emp.Id" onclick="return confirm('Are you sure want to Delete?');">Delete</a>
+
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+====================================================================================================
+
+Program.cs
+
+  pattern: "{controller=Employee}/{action=Index}/{id?}");
+
+Run the application

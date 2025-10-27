@@ -1,0 +1,277 @@
+MVCCore CURD Operation using 8.0(LTS)
+==============================================================================================================
+create database mygominds
+use mygominds
+Create table Employee(Eid int primary key,Ename varchar(30),Salary money)
+Create procedure sp_add@eid int,@ename varchar(30),@salary money
+As begin
+Insert into Employee values(@eid,@ename,@salary)
+End;
+Create procedure sp_edit@eid int,@ename varchar(30),@salary money
+As begin
+Update Employee set Ename=@ename,Salary=@salary where Eid=@eid
+End;
+Create procedure sp_view
+As begin
+Select * from Employee
+End;
+Create procedure sp_delete @eid 
+As begin
+Delete from Employee where eid=@eid
+End;
+=====================================================================================================================
+
+open visual studio 2022->
+create new project->asp.net webapplication(model-view-controller)->next->
+project name:MVCCORECURD8.0
+next->.dot net core 8.0(long-term-support)->create
+=================================================================================================================
+appsettings.json
+
+  "ConnectionStrings": {
+  "getcon": "server=DESKTOP-11SVQ2U;Initial Catalog=mygominds;Integrated Security=SSPI;TrustServerCertificate=True;"
+}
+================================================================================================================
+go to tools->Nuget Package Manager->Manage Nuget Package for->
+select->All(package source1->https://api.nuget.org/v3/index.json
+package source2->https://package.nuget.org/api/v2)
+Browse->Microsoft.Data.SqlClient->select project->version->6.0.2->install->IAccept->ok
+========================================================================================================================
+right click on Model->add-> class->name:EmpModel->add
+
+EmpModel.cs
+
+using Microsoft.Data.SqlClient;
+namespace MVCCORECURD8._0.Models
+{
+    public class EmpModel
+    {
+        public int Eid { get; set; }
+        public string? Ename { get; set; }
+        public double Salary { get; set; }
+    }
+}
+=================================================================================================================================
+right click on Model->add-> class->name:EmpRepository->add
+
+EmpRepository.cs
+
+using Microsoft.Data.SqlClient;
+using System.Data;
+
+namespace MVCCORECURD8._0.Models
+{
+    public class EmpRepository
+    {
+
+        string constring;
+        public EmpRepository(IConfiguration configuration)
+        {
+            // Use the null-forgiving operator (!) if you’re sure it's never null:
+            //  or
+            // constring = configuration.GetConnectionString("getcon") 
+            // ?? throw new ArgumentNullException(nameof(configuration), "Connection string cannot be null.");
+
+            constring = configuration.GetConnectionString("getcon")!;
+        }
+        public void Adduser(EmpModel emp)
+        {
+            
+            SqlConnection con = new SqlConnection(constring);
+            SqlCommand cmd = new SqlCommand("sp_add", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@eid", emp.Eid);
+            cmd.Parameters.AddWithValue("@ename", emp.Ename);
+            cmd.Parameters.AddWithValue("@salary", emp.Salary);
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+
+
+        }
+        public List<EmpModel> GetAllEmps()
+        {
+            
+            List<EmpModel> emps = new List<EmpModel>();
+            SqlConnection con = new SqlConnection(constring);
+            con.Open();
+            SqlCommand cmd = new SqlCommand("sp_view", con);
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            con.Close();
+            foreach (DataRow dr in dt.Rows)
+            {
+                emps.Add(new EmpModel()
+                {
+                    Eid = Convert.ToInt32(dr["Eid"]),
+                    Ename = Convert.ToString(dr["Ename"]),
+                    Salary = Convert.ToDouble(dr["Salary"])
+
+                });
+            }
+            return emps;
+        }
+        public void UpdateUser(EmpModel emp)
+        {
+            
+            SqlConnection con = new SqlConnection(constring);
+            SqlCommand cmd = new SqlCommand("sp_edit", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@eid", emp.Eid);
+            cmd.Parameters.AddWithValue("@ename", emp.Ename);
+            cmd.Parameters.AddWithValue("@salary", emp.Salary);
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+        }
+        public void DeleteEmp(int id)
+        {
+           
+            SqlConnection con = new SqlConnection(constring);
+            SqlCommand cmd = new SqlCommand("sp_delete", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@eid", id);
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+        }
+    }
+}
+============================================================================================================================
+right click on controller add controller ->controller empty->name:EmpController->add
+============================================================================================================================
+EmpController.cs
+==========================================================================================================================
+using Microsoft.AspNetCore.Mvc;
+using MVCCORECURD8._0.Models;
+
+namespace MVCCORECURD8._0.Controllers
+{
+    public class EmpController : Controller
+    { 
+        private readonly EmpRepository empRepo;
+        public EmpController(EmpRepository _empRepo)
+        {
+            this.empRepo = _empRepo;
+        }
+
+        [HttpGet]
+        public IActionResult Index(int? id)
+        {
+            var employees = empRepo.GetAllEmps();
+            EmpModel empModel = new EmpModel();
+            if (id.HasValue)
+            {
+                empModel = employees.FirstOrDefault(e => e.Eid == id.Value) ?? new EmpModel();
+            }
+           
+            ViewBag.EmpList = employees;
+            return View(empModel);
+        }
+        [HttpPost]
+        public IActionResult Index( EmpModel emp, string str)
+        {
+            if (str == "Save")
+            {
+               
+
+                empRepo.Adduser(emp);
+                return RedirectToAction("Index");
+            }
+            else if (str == "Update")
+            {
+               
+                empRepo.UpdateUser(emp);
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+        [HttpGet]
+        public IActionResult Delete(int id)
+        {
+            {
+                empRepo.DeleteEmp(id);
+                return RedirectToAction("Index");
+            }
+        }
+    }
+}
+==================================================================================================
+Program.cs
+
+// Register EmpRepository
+builder.Services.AddScoped<EmpRepository>();
+========================================================================================================
+right click on index[HttpPost]->add view ->Razor view empty->addname:index->add
+=======================================================================================================
+index.cshtml
+=========================================================================================================
+@model MVCCORECURD8._0.Models.EmpModel
+<form asp-controller="Emp" asp-action="Index" method="post">
+    <table>
+        <tr>
+            <td><label asp-for="Eid"></label></td>
+            <td><input asp-for="Eid" readonly="@(Model.Eid>0)" placeholder="New Id" /></td>
+           
+        </tr>
+        <tr>
+            <td><label asp-for="Ename"></label></td>
+            <td><input asp-for="Ename" /></td>
+            
+        </tr>
+        <tr>
+            <td><label asp-for="Salary"></label></td>
+            <td><input asp-for="Salary" /></td>
+           
+        </tr>    
+
+        <tr>
+            <td><input type="submit" value="Save" name="str" /></td>
+            <td><input type="submit" value="Update" name="str" /></td>
+        </tr>
+    </table>
+</form>
+
+
+@if (ViewBag.EmpList != null)
+{
+    var employeeList = ViewBag.EmpList as List<MVCCORECURD8._0.Models.EmpModel>;
+    if (employeeList != null)
+    {
+        <table border="1">
+            <tr>
+                <th> Eid</th>
+                <th> Ename</th>
+                <th> Salary</th>
+                <th> Actions</th>
+            </tr>
+            @foreach (var item in employeeList)
+            {
+                <tr>
+                    <td>@item.Eid</td>
+                    <td>@item.Ename</td>
+                    <td>@item.Salary</td>
+                    <td>
+                        @Html.ActionLink("Edit", "Index", new { id = item.Eid }) |
+                        @Html.ActionLink("Delete", "Delete", new { id = item.Eid }, new { onclick = "return confirm('Are you sure delete?');" })
+                    </td>
+                </tr>
+            }
+        </table>
+    }
+    else
+    {
+        <p>No employees found.</p>
+    }
+}
+else
+{
+    <p>Employee list not available.</p>
+}
+================================================================================================================
+Program.cs
+============================================================================================================
+ pattern: "{controller=Emp}/{action=Index}/{id?}");
+
+Run the application

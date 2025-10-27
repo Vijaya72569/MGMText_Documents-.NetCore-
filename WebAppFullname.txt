@@ -1,0 +1,81 @@
+Go to visual studio2022->
+Create new project->asp.net webapplication(model-view-controller)->next->
+Project name:WebAppFullname
+next->.dot net core 8.0->create
+
+
+right click on Model->add-> class->name:ModelFn->add
+ModelFname.cs
+
+using System.ComponentModel.DataAnnotations;
+
+namespace WebAppFullname.Models
+{
+    public class ModelFn
+    {
+        public string? Firstname { get; set; }
+        public string? Lastname {get; set; }
+    }
+}
+
+right click on controller add controller ->controller empty->name:UserController->add
+
+UserController.cs
+
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebAppFullname.Controllers
+{
+    public class UserController : Controller
+    {
+        public IActionResult Index()
+        {
+            return View();
+        }
+        [HttpPost]
+        public IActionResult Index(Models.ModelFn model)
+        {
+            if(ModelState.IsValid)
+            {
+                ViewBag.Message=model.Firstname + model.Lastname;
+                return View();
+
+            }
+            return View();
+        }
+    }
+}
+
+
+right click on index[HttpPost]->add view ->Razor view empty->addname:index->add
+
+index.cshtml
+@model WebAppFullname.Models.ModelFn
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+<form asp-action="Index" method="post">
+    <div>
+        <label asp-for="Firstname"></label>
+        <input asp-for="Firstname" /> <br />
+
+        <label asp-for="Lastname"></label>
+        <input asp-for="Lastname" /> <br />
+
+        <input type="submit" value="Submit" />
+    </div>
+
+</form>
+
+<h1> @ViewBag.Message</h1>
+
+program.cs
+
+  pattern: "{controller=User}/{action=Index}/{id?}");
+
+Run the application
+
+

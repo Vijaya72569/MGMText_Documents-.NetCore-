@@ -1,0 +1,594 @@
+open visual studio 2022->
+create new project->asp.net webapplication(model-view-controller)->next->
+project name:MvcCoreCurdOperations
+next->.dot net core 3.1->create
+click on tools->install nuget manager->manage nuget packages for solution
+click on-setting icon
+click on-add icon
+name:package source1
+source:https://packages.nuget.org/api/v2
+->update
+click on-add icon
+name:package source2
+source:https://api.nuget.org/v3/index.json
+->update
+->ok
+click on Browse:
+Microsoft.EntityFrameworkCore->select project->version:5.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkDesign->select project->version:5.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkSqlServer->select project->version:5.0.0->install->ok->I Accept
+Microsoft.EntityFrameworkTools->select project->version:5.0.0->install->ok->I Accept
+
+Appsettings.json
+
+"ConnectionStrings": {
+  "con": "server=localhost;Initial Catalog=mygominds;Integrated Security=SSPI;TrustServerCertificate=True;"
+  
+}
+
+Right click on Model->add->class->name:Product->add
+
+using System.ComponentModel.DataAnnotations;
+
+namespace CoreEFCurd.Models
+{
+    public class Product
+    {
+        [Key]
+        public int Pid { get; set; }
+        [Required]
+        public string Pname { get; set; }
+        [Required]
+        public decimal Price { get; set; }
+    }
+}
+
+right click on Model->add class->name:ProductDbContext->add
+
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.Contracts;
+
+namespace CoreEFCurd.Models
+{
+    public class ProductDbContext:DbContext
+    {
+        public ProductDbContext(DbContextOptions<ProductDbContext> options) : base(options) 
+        { }
+        public DbSet<Product> Products { get; set; }
+
+
+    }
+}
+
+using CoreEFCurd.Models;
+using Microsoft.EntityFrameworkCore;
+Write the bellow line in ConfigureService()
+
+  services.AddDbContext<ProductDbContext>(options =>
+  options.UseSqlServer(Configuration.GetConnectionString("con")));
+
+right click on controller->add controller->mvc controller empty->
+
+using CoreEFCurd.Models;
+using Microsoft.AspNetCore.Mvc;
+using System.Linq;
+
+namespace CoreEFCurd.Controllers
+{
+    public class ProductController : Controller
+    {
+        private readonly ProductDbContext _context;
+        public ProductController(ProductDbContext context)
+        {
+            _context = context;
+        }
+        public IActionResult Index()
+        {
+            var products = _context.Products.ToList() ;
+            return View(products);
+        }
+        [HttpPost]
+        public IActionResult Create(Product product) 
+        {
+            if (ModelState.IsValid) 
+            { 
+                _context.Products.Add(product);
+                _context.SaveChanges();
+
+            }
+            return RedirectToAction("Index");
+        
+        }
+
+        [HttpPost]
+        public IActionResult Update(Product product) 
+        {
+            if (ModelState.IsValid) 
+            
+           { 
+            _context.Products.Update(product);
+                _context.SaveChanges();
+            
+            }
+            return RedirectToAction("Index");
+        
+        }
+
+        [HttpPost]
+        public IActionResult Delete(int Pid)
+        {
+            var product = _context.Products.Find(Pid);
+            if (product != null)
+            { 
+             _context.Products.Remove(product);
+                _context.SaveChanges();
+            
+            }
+            return RedirectToAction("Index");
+        
+        }
+    }
+}
+
+Right click on -Index()in [HttpPost]->add view->razor view empty->
+Name:Index->add
+
+@model List<Product>
+<h2>Product Management</h2>
+<form method="post" action="/Product/Create">
+    <input type="number" name="Pid" placeholder="ProductId" /> <br />
+    <input type="text" name="Pname" placeholder="Product name" /> <br />
+    <input type="number" name="Price" placeholder="Product Price" /><br />
+    <button type="submit">AddProduct</button>
+</form>
+<table border="1">
+    <thead>
+        <tr>
+            <th>Product Id</th>
+            <th>Product Name</th>
+            <th>Product Price</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if(Model!=null &&Model.Count>0)
+        {
+            @foreach(var product in Model)
+            {
+                <tr>
+                    <form method="post" action="/Product/Update">
+                        <td>
+                        <input type="number" name="Pid" value="@product.Pid" readonly />
+                        </td>
+                    <td> 
+                        <input type="text" name="Pname" value="@product.Pname" />
+                        </td>
+                    <td>
+                        <input type="number" name="Price" value="@product.Price" />
+                    </td>
+                    <td>
+                         <button type="submit">Edit</button>    
+                    </td>
+                    </form>
+                    <td>
+                        <form method="post" action="/Product/Delete">
+                         <input type="number" name="Pid" value="@product.Pid" readonly />
+                            <button type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4"> No Products Available
+
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+run the application
+
+✅ MCQs Based on ASP.NET Core 3.1 MVC CRUD Project
+1. What does the [Key] attribute in the Product class signify?
+A) It defines a method
+B) It marks the primary key
+C) It is used to encrypt data
+D) It validates the model
+
+Answer: B) It marks the primary key
+
+2. What is the purpose of DbSet<Product> in ProductDbContext?
+A) To configure database connection
+B) To store controller logic
+C) To represent a collection of Product entities
+D) To create a SQL table
+
+Answer: C) To represent a collection of Product entities
+
+3. Where is the connection string defined?
+A) In Startup.cs
+B) In appsettings.json
+C) In Program.cs
+D) In web.config
+
+Answer: B) In appsettings.json
+
+4. Which NuGet package allows EF Core to work with SQL Server?
+A) Microsoft.EntityFrameworkCore.Tools
+B) Microsoft.EntityFrameworkCore.SqlServer
+C) Microsoft.EntityFrameworkDesign
+D) Microsoft.AspNetCore.Mvc
+
+Answer: B) Microsoft.EntityFrameworkCore.SqlServer
+
+5. Which method is used to fetch all records from the database?
+A) ToList()
+B) GetAll()
+C) Find()
+D) All()
+
+Answer: A) ToList()
+
+6. What is the return type of the Index() method in ProductController?
+A) ViewResult
+B) JsonResult
+C) IActionResult
+D) PartialViewResult
+
+Answer: C) IActionResult
+
+7. How are POST requests handled in the controller?
+A) Using [HttpGet]
+B) Using [HttpPost]
+C) Using GET
+D) Using HttpPut
+
+Answer: B) Using [HttpPost]
+
+8. Which tag is used in Razor to iterate over a list?
+A) @loop
+B) @for
+C) @foreach
+D) @repeat
+
+Answer: C) @foreach
+
+9. What is UseSqlServer used for in Startup.cs?
+A) Creating a SQL server
+B) Connecting to SQL Server
+C) Validating models
+D) Compiling the project
+
+Answer: B) Connecting to SQL Server
+
+10. What happens if a product with a given Pid is not found during deletion?
+A) Error is thrown
+B) A new product is created
+C) No action is taken
+D) Page crashes
+
+Answer: C) No action is taken
+
+11. What does services.AddDbContext<ProductDbContext>() do?
+A) Registers EF Core services
+B) Starts a new thread
+C) Adds logging
+D) Compiles Razor views
+
+Answer: A) Registers EF Core services
+
+12. Which version of EF Core is installed in the project?
+A) 3.1
+B) 6.0
+C) 5.0
+D) 2.2
+
+Answer: C) 5.0
+
+13. What HTTP verb is used for updating a product?
+A) GET
+B) POST
+C) PUT
+D) PATCH
+
+Answer: B) POST
+
+14. What does ModelState.IsValid check?
+A) Database connection
+B) Route validation
+C) Input validation
+D) Controller naming
+
+Answer: C) Input validation
+
+15. What is the name of the Razor view file for Index action?
+A) Main.cshtml
+B) Home.cshtml
+C) Index.cshtml
+D) Product.cshtml
+
+Answer: C) Index.cshtml
+
+16. What keyword is used to inject ProductDbContext in the controller?
+A) implements
+B) base
+C) this
+D) constructor injection
+
+Answer: D) constructor injection
+
+17. Which directive sets the model type in a Razor view?
+A) @model
+B) @inherits
+C) @using
+D) @type
+
+Answer: A) @model
+
+18. What placeholder is used for connection string name in UseSqlServer()?
+A) "connection"
+B) "ConnectionString"
+C) "con"
+D) "conn"
+
+Answer: C) "con"
+
+19. What is the namespace of the Product class?
+A) Microsoft.EntityFrameworkCore
+B) CoreEFCurd.Controllers
+C) CoreEFCurd.Models
+D) ProductDb.Models
+
+Answer: C) CoreEFCurd.Models
+
+20. What HTML element is used to submit the form data?
+A) <submit>
+B) <a>
+C) <button>
+D) <form>
+
+Answer: C) <button>
+
+21. What type is Price in the Product model?
+A) int
+B) float
+C) string
+D) decimal
+
+Answer: D) decimal
+
+22. Which action returns the product list to the view?
+A) Create
+B) Index
+C) Update
+D) Delete
+
+Answer: B) Index
+
+23. What does Add(product) do in EF Core?
+A) Updates a record
+B) Deletes a record
+C) Inserts a new record
+D) Validates a record
+
+Answer: C) Inserts a new record
+
+24. What is the purpose of appsettings.json?
+A) View settings
+B) Code editor configuration
+C) Storing configuration like connection strings
+D) Styling
+
+Answer: C) Storing configuration like connection strings
+
+25. What database is used in the connection string?
+A) testdb
+B) mygominds
+C) mydata
+D) defaultdb
+
+Answer: B) mygominds
+
+26. What does Update(product) do in EF Core?
+A) Deletes the product
+B) Validates the product
+C) Modifies the existing product
+D) Adds a new product
+
+Answer: C) Modifies the existing product
+
+27. What is the default port used by Visual Studio for local web hosting?
+A) 8080
+B) 1433
+C) Random high port
+D) 80
+
+Answer: C) Random high port
+
+28. Where do you register the ProductDbContext service?
+A) Configure()
+B) appsettings.json
+C) ConfigureServices()
+D) Program.cs
+
+Answer: C) ConfigureServices()
+
+29. What is the role of Integrated Security=SSPI in the connection string?
+A) Enables password authentication
+B) Uses Windows Authentication
+C) Requires admin privileges
+D) Disables SSL
+
+Answer: B) Uses Windows Authentication
+
+30. What is Razor in ASP.NET Core?
+A) CSS engine
+B) A server
+C) A markup syntax for embedding C# in HTML
+D) An ORM
+
+Answer: C) A markup syntax for embedding C# in HTML
+
+31. What method is used to delete a record in EF Core?
+A) Delete()
+B) Remove()
+C) Drop()
+D) Clear()
+
+Answer: B) Remove()
+
+32. What does Find(Pid) do in EF Core?
+A) Deletes a record
+B) Finds the entity by primary key
+C) Adds a new product
+D) Connects to SQL
+
+Answer: B) Finds the entity by primary key
+
+33. Which property in the Product model ensures that the Pname is not empty?
+A) [Key]
+B) [NotNull]
+C) [Required]
+D) [Validate]
+
+Answer: C) [Required]
+
+34. What method is used to save changes to the database?
+A) Save()
+B) SubmitChanges()
+C) SaveChanges()
+D) Apply()
+
+Answer: C) SaveChanges()
+
+35. What will happen if you forget to call SaveChanges()?
+A) App crashes
+B) Changes are not persisted
+C) Database gets deleted
+D) App becomes slow
+
+Answer: B) Changes are not persisted
+
+36. Where should UseSqlServer() be placed?
+A) In the constructor of the controller
+B) In ConfigureServices() method
+C) In Main() method
+D) In Index() method
+
+Answer: B) In ConfigureServices() method
+
+37. What kind of pattern is used in MVC?
+A) Design pattern
+B) Data structure
+C) Middleware pattern
+D) Algorithm
+
+Answer: A) Design pattern
+
+38. What keyword is used to inherit from DbContext?
+A) : DbSet
+B) : Controller
+C) : DbContext
+D) : ContextBase
+
+Answer: C) : DbContext
+
+39. Which method is used to return a view from a controller?
+A) Show()
+B) Redirect()
+C) View()
+D) Get()
+
+Answer: C) View()
+
+40. What tag is used to create an HTML form in Razor view?
+A) @form
+B) <form>
+C) <razor-form>
+D) <mvc-form>
+
+Answer: B) <form>
+
+41. Why do we use readonly for _context in the controller?
+A) To prevent deletion
+B) For better readability
+C) To avoid reassignment
+D) To protect data
+
+Answer: C) To avoid reassignment
+
+42. What directive must be present to use model properties in the view?
+A) @using
+B) @model
+C) @inject
+D) @add
+
+Answer: B) @model
+
+43. How is dependency injection used in this app?
+A) Through config file
+B) Through attribute
+C) Through constructor
+D) Not used
+
+Answer: C) Through constructor
+
+44. What is the type of data passed to the Index view?
+A) List<string>
+B) Product
+C) string
+D) List<Product>
+
+Answer: D) List<Product>
+
+45. What does [HttpPost] do?
+A) Handles GET requests
+B) Handles POST requests
+C) Hides the method
+D) Compiles the view
+
+Answer: B) Handles POST requests
+
+46. Which EF Core tool is used for command-line migrations and scaffolding?
+A) Microsoft.EntityFrameworkCore.Tools
+B) Microsoft.AspNetCore.Mvc
+C) Microsoft.Extensions.Logging
+D) Newtonsoft.Json
+
+Answer: A) Microsoft.EntityFrameworkCore.Tools
+
+47. What symbol is used in Razor syntax to embed C# code?
+A) #
+B) $
+C) %
+D) @
+
+Answer: D) @
+
+48. Which input type is used to accept price in the view?
+A) text
+B) date
+C) number
+D) currency
+
+Answer: C) number
+
+49. What does the Create action do in the controller?
+A) Updates product
+B) Deletes product
+C) Adds new product
+D) Shows product list
+
+Answer: C) Adds new product
+
+50. Why is Pid marked as readonly in HTML form?
+A) It should not be modified
+B) It's required
+C) It's hidden
+D) It needs to be editable
+
+Answer: A) It should not be modified
+

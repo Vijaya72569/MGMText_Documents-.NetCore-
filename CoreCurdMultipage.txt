@@ -1,0 +1,477 @@
+MVCCURD in Multipage
+==============================================================================================
+create table Emp
+Columns Empid int,Ename varchar(30),Email varchar(50),City varchar(30)
+create Stored Procedures 
+
+-- TABLE --Aspmvcdb database---
+use Aspmvcdb
+CREATE TABLE Emp (
+    Empid INT PRIMARY KEY ,
+    Ename VARCHAR(30) ,
+    Email VARCHAR(50),
+    City varchar(30)
+    
+);
+select * from Emp
+-- PROCEDURES
+CREATE PROCEDURE sp_view AS
+BEGIN
+    SELECT Empid, Ename, Email,City FROM Emp;
+END;
+
+
+CREATE PROCEDURE sp_Add1 @id int @ename VARCHAR(30), @email VARCHAR(50),@city VARCHAR(30) AS
+BEGIN
+    INSERT INTO Emp VALUES (@id,@ename,@email,@city);
+END;
+
+CREATE PROCEDURE sp_update @eid INT, @ename VARCHAR(30), @email VARCHAR(50),@city VARCHAR(30) AS
+BEGIN
+    UPDATE Emp SET Ename = @ename, Email = @email,City=@city WHERE Empid = @eid;
+END;
+
+CREATE PROCEDURE sp_delete @eid INT AS
+BEGIN
+    DELETE FROM Emp WHERE Empid = @eid;
+END;
+
+=========================================================================================
+
+open visual studio 2022->
+create new project->asp.net webapplication(model-view-controller)->next->
+project name:MvcCurdMultipage
+next->.dot net core 8.0->create
+click on tools->install nuget manager->manage nuget packages for solution
+click on-setting icon
+click on-add icon
+name:package source1
+source:https://packages.nuget.org/api/v2
+->update
+click on-add icon
+name:package source2
+source:https://api.nuget.org/v3/index.json
+->update
+->ok
+click on Browse:
+Microsoft.EntityFrameworkCore->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFramework.Design->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFramework.SqlServer->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFramework.Tools->select project->version:8.0.0->install->ok->I Accept
+
+Appsettings.json
+
+"ConnectionStrings": {
+  "getcon": "server=localhost;Initial Catalog=mygominds;Integrated Security=SSPI;TrustServerCertificate=True;"
+  
+}
+
+Right click on Model->add->class->name:EmpModel->add
+
+EmpModel.ts
+
+namespace MvcCurdMultipage.Models
+{
+    public class EmpModel
+    {
+     public int Empid {  get; set; }
+        public string? Ename { get; set; }
+        public string? Email {  get; set; }
+        public string? City {  get; set; }
+    }
+}
+
+
+=======================================================================================
+
+================================================================================================
+Right click on Model->add->class->name:EmpRepository->add
+
+EmpRepository.ts
+
+using Microsoft.Data.SqlClient;
+
+namespace MvcCurdMultipage.Models
+{
+    public class EmpRepository
+    {
+        string constr;
+       public EmpRepository(IConfiguration configuration)
+        {
+            constr = configuration.GetConnectionString("getcon")!;
+        }
+        public void AddUser(EmpModel emp)
+        {
+
+            SqlConnection con=new SqlConnection(constr);
+            SqlCommand cmd = new SqlCommand("sp_Add1", con);
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@id", emp.Empid);
+            cmd.Parameters.AddWithValue("ename", emp.Ename);
+            cmd.Parameters.AddWithValue("@email", emp.Email);
+            cmd.Parameters.AddWithValue("city", emp.City);
+
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+        }
+
+=================================================================================================================================
+
+right click on controller->add controller->mvc controller empty->name:EmployeeController.ts->enter
+
+EmployeeController.ts
+
+using Microsoft.AspNetCore.Mvc;
+using MvcCurdMultipage.Models;
+
+namespace MvcCurdMultipage.Controllers
+{
+    public class EmployeeController : Controller
+    {
+        EmpRepository _emprepo;
+        public EmployeeController(EmpRepository emprepo)
+        {
+        _emprepo = emprepo;
+        }
+        public IActionResult Insert()
+        {
+            return View();
+        }
+        [HttpPost]
+        public IActionResult Insert(EmpModel emp)
+
+        { 
+         if(ModelState.IsValid) 
+                {
+                _emprepo.AddUser(emp);
+                return View();
+                }
+         return View();
+        
+        }
+
+=================================================================================================================================
+
+Right click on -Insert()[HttpPost]->add view->razor view empty->
+Name:Insert->add
+Insert.cshtml
+
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+@model MvcCurdMultipage.Models.EmpModel;
+<form asp-action="Insert" method="post">
+    <table>
+        <tr>
+<td>
+    <label asp-for="Empid"></label>
+
+</td>
+<td>
+    <input asp-for="Empid"/>
+</td>
+
+</tr>
+        <tr>
+            <td>
+                <label asp-for="Ename"></label>
+
+            </td>
+            <td>
+                <input asp-for="Ename" />
+            </td>
+
+        </tr>
+        <tr>
+            <td>
+                <label asp-for="Email"></label>
+
+            </td>
+            <td>
+                <input asp-for="Email" />
+            </td>
+
+        </tr>
+        <tr>
+            <td>
+                <label asp-for="City"></label>
+
+            </td>
+            <td>
+                <input asp-for="City" />
+            </td>
+
+        </tr>
+        <tr>
+           <td>
+              <input type="submit" value="Save" />
+</td>
+</tr>
+    </table>
+
+</form>
+============================================================================================================================
+Program.ts
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<EmpRepository>(); //add this line
+
+ pattern: "{controller=Employee}/{action=Insert}/{id?}");
+ 
+application Run
+
+=====================================================================================================================================
+For View code in EmpRepository.cs
+=================================================================================
+
+
+        public List<EmpModel> GetEmps() 
+        { 
+         SqlConnection  conn=new SqlConnection(constr);
+            List<EmpModel> obj=new  List<EmpModel>();
+            SqlCommand cmd = new SqlCommand("sp_view", conn);
+            cmd.CommandType=System.Data.CommandType.StoredProcedure;
+            conn.Open();
+            SqlDataReader dr=cmd.ExecuteReader();
+            while (dr.Read())
+            {
+                obj.Add(new EmpModel()
+                {
+                    Empid = Convert.ToInt32(dr["Empid"]),
+                    Ename = Convert.ToString(dr["Ename"]),
+                    Email = Convert.ToString(dr["Email"]),
+                    City = Convert.ToString(dr["City"]),
+
+
+                });         
+            
+            }
+            return obj;
+        
+}
+}
+
+=====================================================================================================
+
+EmployeeController.ts
+
+add code for GetAllEmp 
+
+   public IActionResult GetAllEmp()
+   {
+       ModelState.Clear();
+       return View(_emprepo.GetEmps());
+   }
+
+==================================================================================================
+Right click on -GetAllEmp()->add view->razor view empty->
+Name:GetAllEmp->add
+GetAllEmp.cshtml
+
+
+@model IEnumerable<MvcCurdMultipage.Models.EmpModel>;
+<table border="1">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(m=>m.Empid)
+            </th>
+             <th>
+                @Html.DisplayNameFor(m=>m.Ename)
+            </th>
+            <th>
+                @Html.DisplayNameFor(m => m.Email)
+            </th>
+            <th>
+                @Html.DisplayNameFor(m => m.City)
+            </th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach(var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(m=>item.Empid)
+                </td>
+                 <td>
+                    @Html.DisplayFor(m=>item.Ename)
+                </td>
+                <td>
+                    @Html.DisplayFor(m => item.Email)
+                </td>
+                <td>
+                    @Html.DisplayFor(m => item.City)
+                </td>
+               
+            </tr>
+        }
+       
+    </tbody>
+</table>
+
+===============================================================================================================
+Program.ts
+
+
+ pattern: "{controller=Employee}/{action=GetAllEmp}/{id?}");
+ 
+application Run
+
+============================================================================================================================
+RepositoryCode for Update
+
+EmpRepository.cs
+
+   public void UpdateEmp(EmpModel emp)
+   {
+       SqlConnection con = new SqlConnection(constr);
+       SqlCommand cmd = new SqlCommand("sp_update", con);
+       cmd.CommandType = System.Data.CommandType.StoredProcedure;
+       cmd.Parameters.AddWithValue("@eid", emp.Empid);
+       cmd.Parameters.AddWithValue("ename", emp.Ename);
+       cmd.Parameters.AddWithValue("@email", emp.Email);
+       cmd.Parameters.AddWithValue("city", emp.City);
+
+       con.Open();
+       cmd.ExecuteNonQuery();
+       con.Close();
+   }
+
+========================================================================================================
+ Controller code for update
+
+EmployeeController.cs
+
+  public IActionResult EditEmp(int id)
+  {
+      var editemp=_emprepo.GetEmps().Find(emp=>emp.Empid == id);
+      return View(editemp);
+  }
+  [HttpPost]
+  public IActionResult EditEmp(EmpModel emp, int id)
+  {
+      if (ModelState.IsValid)
+      {
+          _emprepo.UpdateEmp(emp);
+          return RedirectToAction("GetAllEmp");
+      }
+      return View(emp);
+  }
+
+================================================================================================================================
+add this line code for Edit link in table in GetAllEmp.cshtml    
+
+                 <td>
+                    @Html.ActionLink("Edit" ,"EditEmp", new {id=item.Empid})
+                </td>
+               
+================================================================================================
+
+EditEmp.cshtml
+
+@model MvcCurdMultipage.Models.EmpModel;
+<form asp-action="EditEmp" method="post">
+    <table>
+        <tr>
+            <td>
+                <label asp-for="Empid"></label>
+
+            </td>
+            <td>
+                <input asp-for="Empid" />
+            </td>
+
+        </tr>
+        <tr>
+            <td>
+                <label asp-for="Ename"></label>
+
+            </td>
+            <td>
+                <input asp-for="Ename" />
+            </td>
+
+        </tr>
+        <tr>
+            <td>
+                <label asp-for="Email"></label>
+
+            </td>
+            <td>
+                <input asp-for="Email" />
+            </td>
+
+        </tr>
+        <tr>
+            <td>
+                <label asp-for="City"></label>
+
+            </td>
+            <td>
+                <input asp-for="City" />
+            </td>
+
+        </tr>
+        <tr>
+            <td>
+                <input type="submit" value="Save" />
+            </td>
+        </tr>
+    </table>
+
+</form>
+==========================================================================
+Program.ts
+
+ pattern: "{controller=Employee}/{action=GetAllEmp}/{id?}");
+ 
+application Run
+
+
+===========================================================================================================================
+                     
+add this line code for Delete link in table in GetAllEmp.cshtml   
+
+                     <td>
+                    @Html.ActionLink("Delete", "DeleteEmp", new { id = item.Empid },
+                    new{onclick="return confirm('Are you sure Delete?')"})
+                </td>
+==========================================================================================================================
+Delete code in EmpRepository.cs
+
+   public void DeleteEmp(int id)
+   {
+       SqlConnection con = new SqlConnection(constr);
+       SqlCommand cmd = new SqlCommand("sp_delete", con);
+       cmd.CommandType = System.Data.CommandType.StoredProcedure;
+       cmd.Parameters.AddWithValue("@eid", id);
+       con.Open();
+       cmd.ExecuteNonQuery();
+       con.Close();
+   }
+
+===================================================================================================
+Delete code in EmployeeController.cs
+
+
+    public IActionResult DeleteEmp(int id)
+    { 
+     var delemp=_emprepo.GetEmps().Find(emp=>emp.Empid==id);
+        if(delemp != null)
+        {
+            _emprepo.DeleteEmp(id);
+            return RedirectToAction("GetAllEmp");
+        }
+        return View();
+======================================================================================================================        
+Program.ts
+
+
+ pattern: "{controller=Employee}/{action=GetAllEmp}/{id?}");
+ 
+application Run

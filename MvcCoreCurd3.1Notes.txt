@@ -1,0 +1,625 @@
+open visual studio 2022->
+create new project->asp.net webapplication(model-view-controller)->next->
+project name:MvcCoreCurdOperations
+next->.dot net core 3.1->create
+click on tools->install nuget manager->manage nuget packages for solution
+click on-setting icon
+click on-add icon
+name:package source1
+source:https://packages.nuget.org/api/v2
+->update
+click on-add icon
+name:package source2
+source:https://api.nuget.org/v3/index.json
+->update
+->ok
+browse:System.data.SqlClient->install->I Accept->ok
+
+Appsetting.json
+"ConnectionStrings": {
+  "SetConnection": "server=localhost;Initial Catalog=mygominds;Integrated Security=SSPI;TrustServerCertificate=True;"
+}
+
+Right click on Model->add->class->name:EmpModel->add
+
+namespace MvcCoreCurdOperations.Models
+{
+    public class EmpModel
+    {
+        public int Eid { get; set; }
+        public string Ename { get; set; }
+        public double Salary { get; set; }
+       
+    }
+}
+
+right click on Model->add class->name:EmpRepository->add
+
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+
+namespace MvcCoreCurdOperations.Models
+{
+    public class EmpRepository
+    {
+        public void Adduser(EmpModel emp)
+        {
+            var dbconfig = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json").Build();
+            string s = dbconfig.GetConnectionString("SetConnection");
+            SqlConnection con = new SqlConnection(s);
+            SqlCommand cmd = new SqlCommand("sp_add", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@eid", emp.Eid);
+            cmd.Parameters.AddWithValue("@ename", emp.Ename);
+            cmd.Parameters.AddWithValue("@salary", emp.Salary);
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+
+
+        }
+        public List<EmpModel> GetAllEmps()
+        {
+            var dbconfig = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
+               .AddJsonFile("appsettings.json").Build();
+            string s = dbconfig.GetConnectionString("SetConnection");
+            List<EmpModel> emps = new List<EmpModel>();
+            SqlConnection con = new SqlConnection(s);
+            con.Open();
+            SqlCommand cmd = new SqlCommand("sp_view", con);
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            con.Close();
+            foreach (DataRow dr in dt.Rows)
+            {
+                emps.Add(new EmpModel()
+                {
+                    Eid = Convert.ToInt32(dr["Eid"]),
+                    Ename = Convert.ToString(dr["Ename"]),
+                    Salary = Convert.ToDouble(dr["Salary"])
+
+                });
+            }
+            return emps;
+        }
+        public void UpdateUser(EmployeeViewModel emp)
+        {
+            var dbconfig = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
+                 .AddJsonFile("appsettings.json").Build();
+            string s = dbconfig.GetConnectionString("SetConnection");
+            if(emp==null || emp.SelectedEmplyee == null)
+            {
+                throw new ArgumentNullException(nameof(emp),"EmployeeViewModel or SelectedEmployee can not be null");
+            }
+            SqlConnection con = new SqlConnection(s);
+            SqlCommand cmd = new SqlCommand("sp_edit", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@eid", emp.SelectedEmplyee.Eid);
+            cmd.Parameters.AddWithValue("@ename", emp.SelectedEmplyee.Ename);
+            cmd.Parameters.AddWithValue("@salary", emp.SelectedEmplyee.Salary);
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+        }
+        public void DeleteEmp(int id)
+        {
+            var dbconfig = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
+              .AddJsonFile("appsettings.json").Build();
+            string s = dbconfig.GetConnectionString("SetConnection");
+            SqlConnection con = new SqlConnection(s);
+            SqlCommand cmd = new SqlCommand("sp_delete", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@eid", id);
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+        }
+    }
+}
+
+right click on controller->add controller->mvc5 controller empty->
+name:EmployeeController->add
+
+using Microsoft.AspNetCore.Mvc;
+using MvcCoreCurdOperations.Models;
+using System.Linq;
+
+namespace MvcCoreCurdOperations.Controllers
+{
+    public class EmployeeController : Controller
+    {
+        EmpRepository empRepo = new EmpRepository();
+        [HttpGet]
+        public IActionResult Index(int? id)
+        {
+            var employees = empRepo.GetAllEmps();
+            EmpModel empModel = new EmpModel();
+            if (id.HasValue)
+            {
+                empModel = employees.FirstOrDefault(e => e.Eid == id.Value) ?? new EmpModel();
+            }
+            var viewModel = new EmployeeViewModel
+            {
+                Employeelist = employees,
+                SelectedEmplyee = empModel
+            };
+            return View(viewModel);
+        }
+        [HttpPost]
+        public IActionResult Index(EmployeeViewModel empview, EmpModel emp, string str)
+        {
+            if (str == "Save")
+            {
+                EmpModel selectEmployee = empview.SelectedEmplyee;
+                empRepo.Adduser(selectEmployee);
+                return RedirectToAction("Index");
+            }
+            else if (str == "Update")
+            {
+                empRepo.UpdateUser(empview);
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+        [HttpGet]
+        public IActionResult Delete(int id)
+        {
+            {
+                empRepo.DeleteEmp(id);
+                return RedirectToAction("Index");
+            }
+        }
+    }
+}
+
+Right click on -Index()in [HttpPost]->add view->razor view empty->
+Name:Index->add
+
+@model MvcCoreCurdOperations.Models.EmployeeViewModel
+<form asp-controller="Employee" asp-action="Index" method="post">
+    <table>
+        <tr>
+            <td>
+                <label asp-for="SelectedEmplyee.Eid"></label>
+            </td>
+            <td>
+                <input asp-for="SelectedEmplyee.Eid" readonly="@(Model.SelectedEmplyee.Eid>0)" placeholder="New Id" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label asp-for="SelectedEmplyee.Ename"></label>
+            </td>
+            <td>
+                <input asp-for="SelectedEmplyee.Ename" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label asp-for="SelectedEmplyee.Salary"></label>
+            </td>
+            <td>
+                <input asp-for="SelectedEmplyee.Salary" />
+            </td>
+        </tr>
+        <tr>
+            <td> 
+                <input type="submit" value="Save" name="str" />
+            </td>
+            <td>
+                <input type="submit" value="Update" name="str" />
+            </td>
+        </tr>
+        
+    </table>
+</form>
+<table border="1">
+    <tr>
+        <th> Eid</th>
+        <th> Ename</th>
+        <th> Salary</th>
+        <th> Actions</th>
+    </tr>
+    @foreach (var item in Model.Employeelist)
+    {
+        <tr>
+            <td>
+                @item.Eid
+            </td>
+            <td>
+                @item.Ename
+            </td>
+            <td>
+                @item.Salary
+            </td>
+            <td>
+                @Html.ActionLink("Edit","Index" ,new { id=item.Eid})
+            </td>
+            <td>
+                @Html.ActionLink("Delete", "Delete", new { id = item.Eid },
+                new{ onclick="return confirm('Are You Sure Delete?')"})
+            </td>
+        </tr>
+    }
+   
+</table>
+
+Startup.ts
+
+  pattern: "{controller=Employee}/{action=Index}/{id?}");
+run application
+
+
+✅ ASP.NET Core 3.1 MVC CRUD – MCQs (Answers after options)
+What is the name of the controller used in the project?
+A) HomeController
+B) EmployeeController
+C) EmpController
+D) UserController
+Answer: B
+
+What method is used to add a new employee in the controller?
+A) Create()
+B) Index() [HttpPost]
+C) AddEmp()
+D) Save()
+Answer: B
+
+Which model class holds the employee properties?
+A) EmployeeViewModel
+B) EmpModel
+C) EmpClass
+D) EmployeeEntity
+Answer: B
+
+What namespace contains the EmpModel class?
+A) MvcCurdApp.Models
+B) MvcCoreCurdOperations.Models
+C) MvcWebApp.Models
+D) EmployeeApp.Models
+Answer: B
+
+What Razor syntax is used to bind to a model property?
+A) @model.property
+B) asp-for
+C) bind-for
+D) asp-model
+Answer: B
+
+Which class is responsible for database operations?
+A) EmployeeController
+B) EmpRepository
+C) SqlDataHandler
+D) DbHelper
+Answer: B
+
+What is the return type of the GetAllEmps() method?
+A) IEnumerable<string>
+B) List<EmpModel>
+C) DataTable
+D) void
+Answer: B
+
+Which stored procedure is called for adding a record?
+A) sp_save
+B) sp_add
+C) sp_insert
+D) proc_add
+Answer: B
+
+What type of command is used in ADO.NET to call a stored procedure?
+A) Text
+B) StoredProcedure
+C) Procedure
+D) SQLCommand
+Answer: B
+
+What method is used to fill a DataTable from SQL?
+A) ExecuteReader()
+B) SqlDataAdapter.Fill()
+C) ExecuteScalar()
+D) LoadData()
+Answer: B
+
+What property holds the list of employees in the ViewModel?
+A) EmployeeList
+B) Employeelist
+C) AllEmployees
+D) EmpRecords
+Answer: B
+
+What input field is marked as readonly in the view?
+A) Ename
+B) Eid
+C) Salary
+D) EmpModel
+Answer: B
+
+Which method is called when the user clicks "Delete"?
+A) POST Delete
+B) GET Delete
+C) Remove()
+D) DeleteEmp()
+Answer: B
+
+What method is used to redirect to another action in MVC?
+A) RedirectTo()
+B) RedirectToAction()
+C) GoToAction()
+D) NavigateTo()
+Answer: B
+
+What confirms the delete operation in the view?
+A) Html.Confirm()
+B) onclick="return confirm()"
+C) js-alert
+D) Html.Prompt()
+Answer: B
+
+Which file stores the database connection string?
+A) web.config
+B) appsettings.json
+C) config.json
+D) settings.js
+Answer: B
+
+What method is used to read configuration in EmpRepository?
+A) Configuration.GetSection()
+B) ConfigurationBuilder().AddJsonFile()
+C) GetJsonConnection()
+D) ReadConnectionString()
+Answer: B
+
+What is the key used to access the connection string?
+A) DefaultConnection
+B) SetConnection
+C) MainDb
+D) SqlCon
+Answer: D
+
+Which class is used to manage SQL connections?
+A) SqlCommandBuilder
+B) SqlConnection
+C) SqlHelper
+D) SqlDbManager
+Answer: B
+
+Which assembly provides SqlClient?
+A) System.Data
+B) Microsoft.Data.SqlClient
+C) Microsoft.Sql
+D) System.Sql
+Answer: B
+
+What pattern does this project follow?
+A) MVVM
+B) MVC
+C) MVP
+D) MVU
+Answer: B
+
+Which NuGet package is installed to use SQL Client?
+A) System.Data.SqlClient
+B) Microsoft.Data.SqlClient
+C) Sql.Data
+D) SqlClient.Core
+Answer: B
+
+What is the default route in Startup.cs?
+A) controller=Home
+B) controller=Employee
+C) controller=Main
+D) controller=User
+Answer: B
+
+What method defines routing in ASP.NET Core?
+A) UseRouting()
+B) ConfigureRoutes()
+C) endpoints.MapControllerRoute()
+D) app.UseRoutes()
+Answer: C
+
+What version of .NET Core is targeted in this project?
+A) .NET 6
+B) .NET Core 3.1
+C) .NET 5
+D) .NET Framework 4.7
+Answer: B
+
+What does sp_add do?
+A) Deletes records
+B) Adds new records
+C) Views data
+D) Updates salary
+Answer: B
+
+What SQL command is used in sp_view?
+A) SELECT
+B) INSERT
+C) UPDATE
+D) DELETE
+Answer: A
+
+What parameters are passed to sp_add?
+A) eid only
+B) eid, ename, salary
+C) emp
+D) id, name
+Answer: B
+
+What does sp_edit update?
+A) Eid
+B) Ename
+C) Salary
+D) All fields
+Answer: D
+
+What is the parameter name in sp_delete?
+A) @id
+B) @eid
+C) @empId
+D) @emp
+Answer: B
+
+What directive sets the model in the Razor view?
+A) @controller
+B) @using
+C) @model
+D) @bind
+Answer: C
+
+Which tag helper is used to bind a form input?
+A) asp-controller
+B) asp-model
+C) asp-for
+D) form-bind
+Answer: C
+
+What value is passed when "Save" is clicked?
+A) saveEmp
+B) str = "Save"
+C) "emp_save"
+D) "Add"
+Answer: B
+
+What happens if Eid > 0 in Razor input?
+A) It becomes required
+B) It becomes readonly
+C) It shows a warning
+D) It hides the field
+Answer: B
+
+Which HTML helper generates action links?
+A) Html.Button
+B) Html.ActionLink
+C) Html.Route
+D) Html.LinkTo
+Answer: B
+
+What exception is thrown if emp.SelectedEmplyee is null?
+A) NullReferenceException
+B) ArgumentNullException
+C) IndexOutOfRangeException
+D) Exception
+Answer: A
+
+What method is used to open a SQL connection?
+A) Connect()
+B) Open()
+C) Execute()
+D) Start()
+Answer: B
+
+What happens after successful insert or update?
+A) Alert shown
+B) Redirect to Index
+C) New form opens
+D) Page reloads
+Answer: B
+
+What class is used to store configuration settings?
+A) SqlSettings
+B) IConfiguration
+C) WebSettings
+D) AppOptions
+Answer: B
+
+Why is CommandType.StoredProcedure used?
+A) For table data
+B) To call SPs
+C) To use SQL
+D) To bind model
+Answer: B
+
+What type of method is Index(int? id)?
+A) GET
+B) POST
+C) PUT
+D) DELETE
+Answer: A
+
+What method type is used for saving and updating?
+A) GET
+B) POST
+C) PUT
+D) PATCH
+Answer: B
+
+How many views are created in this project?
+A) 3
+B) 2
+C) 1 (Index.cshtml)
+D) None
+Answer: C
+
+What happens when Delete is called?
+A) Redirect to Delete
+B) Record is deleted and redirected to Index
+C) Confirmation shown
+D) Nothing
+Answer: B
+
+What data type is used for employee salary?
+A) float
+B) int
+C) double
+D) decimal
+Answer: C
+
+What is used to display conditional readonly fields in Razor?
+A) HtmlIf()
+B) @(Model.SelectedEmplyee.Eid > 0)
+C) @readonly
+D) ng-readonly
+Answer: B
+
+Which class contains both list and single employee objects?
+A) EmpModel
+B) EmployeeViewModel
+C) EmpRepo
+D) EmpCollection
+Answer: B
+
+What is the purpose of the str parameter in POST method?
+A) Submit data
+B) Handle JSON
+C) Identify action (Save or Update)
+D) Parse input
+Answer: C
+
+How are actions like Edit/Delete routed?
+A) By passing id in query string
+B) By form post
+C) By session
+D) By API calls
+Answer: A
+
+Why is .AddJsonFile("appsettings.json") used?
+A) For security
+B) To load config
+C) To read file
+D) To import package
+Answer: B
+
+
+open visual studio 2022->
+create new project->asp.net webapplication(model-view-controller)->next->
+project name:MvcCoreCurdOperations
+next->.dot net core 3.1->create
+click on tools->install nuget manager->manage nuget packages for solution
+click on-package source:all
+browse:System.data.SqlClient->install->I Accept->ok
+
+Appsetting.json
+"ConnectionStrings": {
+  "SetConnection": "server=localhost;Initial Catalog=mygominds;Integrated Security=SSPI;TrustServerCertificate=True;"
+}
+
+Right click on Model->add->class->name:EmpModel->add
+DESKTOP-11SVQ2U
