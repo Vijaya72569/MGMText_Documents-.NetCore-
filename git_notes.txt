@@ -1,0 +1,344 @@
+Remote repository : hosting service is called github.
+repository is nothing but aproject folder
+remote repository : storing service is called github
+
+git fetch or git push before changes file comes 
+fetch is used to  changes show not modify but pull is used to add changes
+====================================================================
+7 june 2025
+
+✅ Scenario: You Forked a Repository and Made Changes
+Let’s say:
+
+You forked https://github.com/originaluser/project
+
+Your fork is https://github.com/yourusername/project
+
+You cloned it, made changes, and pushed it to your GitHub fork
+
+Now, you want the original project owner to review and merge your work.
+
+✅ Step-by-Step to Raise a Pull Request (PR)
+🔧 1. Fork and Clone the Repository (if not already done)
+bash
+Copy
+Edit
+git clone https://github.com/yourusername/project.git
+cd project
+🔧 2. Create a New Branch (Optional but Recommended)
+bash
+Copy
+Edit
+git checkout -b my-feature
+🔧 3. Make Your Code Changes
+(e.g., fix bugs, add features, update files)
+
+🔧 4. Add, Commit, and Push
+bash
+Copy
+Edit
+git add .
+git commit -m "Added feature X or fixed bug Y"
+git push origin my-feature
+🔁 5. Open Your GitHub Repository
+Go to 👉 https://github.com/yourusername/project
+
+GitHub will usually show a “Compare & pull request” button.
+Click it.
+
+OR
+
+Go to the “Pull requests” tab
+
+Click “New pull request”
+
+Select:
+
+Base repository: originaluser/project
+
+Base branch: usually main or master
+
+Head repository: yourusername/project
+
+Compare branch: my-feature (your branch with changes)
+
+📝 6. Fill the Pull Request Form
+Add a Title and Description of what you’ve changed
+
+You can also link to issues (e.g., fixes #12)
+
+🚀 7. Click “Create Pull Request”
+Done! 🎉
+
+Now the repository owner will review your request and either:
+
+Approve and merge it
+
+Ask for changes or improvements
+
+Close it (if not suitable)
+
+📌 Pull Request Statuses:
+🟢 Open → Awaiting review
+
+🟡 Changes requested → You need to update your code
+
+✅ Merged → Your changes are accepted!
+
+❌ Closed → Not accepted or outdated
+====================================================================
+how to clone repo : youtube class
+===========================================
+Create one empty folder and in that folder clean path and type cmd ->enter
+C:\Users\DELL\Desktop\RepoCopy> // see this path
+copy the http of git repository in github
+http is https://github.com/Vijaya72569/Demo.git
+C:\Users\DELL\Desktop\RepoCopy>git clone https://github.com/Vijaya72569/Demo.git
+C:\Users\DELL\Desktop\RepoCopy>git dir
+C:\Users\DELL\Desktop\RepoCopy>cd Demo
+C:\Users\DELL\Desktop\RepoCopy\Demo>git status
+nothing to commit, working tree clean // see this 
+make changes in project and then
+C:\Users\DELL\Desktop\RepoCopy\Demo>git status
+        modified:   mgm.txt // see this then 
+C:\Users\DELL\Desktop\RepoCopy\Demo>git add "mgm.txt"
+C:\Users\DELL\Desktop\RepoCopy\Demo>git push origin main
+
+====================================================================
+
+how take project to another git account
+
+C:\Users\DELL\Desktop\PR raised>dir
+C:\Users\DELL\Desktop\PR raised>git clone https://github.com/Vijaya72569/Demo.git
+C:\Users\DELL\Desktop\PR raised>dir
+C:\Users\DELL\Desktop\PR raised>cd Demo
+C:\Users\DELL\Desktop\PR raised\Demo>git chechout -b
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout main
+C:\Users\DELL\Desktop\PR raised\Demo>git pull
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout -b "dev1"
+Switched to a new branch 'dev1'
+
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout main
+Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout -b "dev2"
+Switched to a new branch 'dev2'
+
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout main
+Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout dev1
+Switched to branch 'dev1'
+
+C:\Users\DELL\Desktop\PR raised\Demo>git status
+On branch dev1
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   mgm.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+C:\Users\DELL\Desktop\PR raised\Demo>git add "mgm.txt"
+
+C:\Users\DELL\Desktop\PR raised\Demo>git commit -m "my changes in mgm.txt"
+[dev1 d0628c5] my changes in mgm.txt
+ 1 file changed, 2 insertions(+)
+
+C:\Users\DELL\Desktop\PR raised\Demo>git commit -m "div1 changes in mgm.txt"
+On branch dev1
+nothing to commit, working tree clean
+
+C:\Users\DELL\Desktop\PR raised\Demo>git push
+fatal: The current branch dev1 has no upstream branch.
+To push the current branch and set the remote as upstream, use
+
+    git push --set-upstream origin dev1
+
+To have this happen automatically for branches without a tracking
+upstream, see 'push.autoSetupRemote' in 'git help config'.
+
+
+C:\Users\DELL\Desktop\PR raised\Demo> git push --set-upstream origin dev1
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 327 bytes | 327.00 KiB/s, done.
+Total 3 (delta 1), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+remote:
+remote: Create a pull request for 'dev1' on GitHub by visiting:
+remote:      https://github.com/Vijaya72569/Demo/pull/new/dev1
+remote:
+To https://github.com/Vijaya72569/Demo.git
+ * [new branch]      dev1 -> dev1
+branch 'dev1' set up to track 'origin/dev1'.
+
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout dev2
+Switched to branch 'dev2'
+
+C:\Users\DELL\Desktop\PR raised\Demo>git status
+On branch dev2
+nothing to commit, working tree clean
+
+C:\Users\DELL\Desktop\PR raised\Demo>git status
+On branch dev2
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   mgm.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+C:\Users\DELL\Desktop\PR raised\Demo>git commit -m "dev2 changes in mgm.txt"
+On branch dev2
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   mgm.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout dev2
+M       mgm.txt
+Already on 'dev2'
+
+C:\Users\DELL\Desktop\PR raised\Demo>git commit -m "dev2 changes in mgm.txt"
+On branch dev2
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   mgm.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+C:\Users\DELL\Desktop\PR raised\Demo>git add "mgm.txt"
+
+C:\Users\DELL\Desktop\PR raised\Demo>git commit -m "dev2 changes in mgm.txt"
+[dev2 ff10aae] dev2 changes in mgm.txt
+ 1 file changed, 4 insertions(+)
+
+C:\Users\DELL\Desktop\PR raised\Demo>git push
+fatal: The current branch dev2 has no upstream branch.
+To push the current branch and set the remote as upstream, use
+
+    git push --set-upstream origin dev2
+
+To have this happen automatically for branches without a tracking
+upstream, see 'push.autoSetupRemote' in 'git help config'.
+
+
+C:\Users\DELL\Desktop\PR raised\Demo> git push --set-upstream origin dev2
+To https://github.com/Vijaya72569/Demo.git
+ ! [rejected]        dev2 -> dev2 (fetch first)
+error: failed to push some refs to 'https://github.com/Vijaya72569/Demo.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+
+C:\Users\DELL\Desktop\PR raised\Demo>git push --set-upstream origin dev2
+To https://github.com/Vijaya72569/Demo.git
+ ! [rejected]        dev2 -> dev2 (fetch first)
+error: failed to push some refs to 'https://github.com/Vijaya72569/Demo.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+
+C:\Users\DELL\Desktop\PR raised\Demo>git pull origin dev2 --rebase
+remote: Enumerating objects: 1, done.
+remote: Counting objects: 100% (1/1), done.
+remote: Total 1 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (1/1), 905 bytes | 301.00 KiB/s, done.
+From https://github.com/Vijaya72569/Demo
+ * branch            dev2       -> FETCH_HEAD
+ * [new branch]      dev2       -> origin/dev2
+Auto-merging mgm.txt
+CONFLICT (content): Merge conflict in mgm.txt
+error: could not apply ff10aae... dev2 changes in mgm.txt
+hint: Resolve all conflicts manually, mark them as resolved with
+hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
+hint: You can instead skip this commit: run "git rebase --skip".
+hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
+hint: Disable this message with "git config set advice.mergeConflict false"
+Could not apply ff10aae... dev2 changes in mgm.txt
+
+C:\Users\DELL\Desktop\PR raised\Demo>git pull origin dev2
+error: Pulling is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: Exiting because of an unresolved conflict.
+
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout -b "dev3"
+Switched to a new branch 'dev3'
+
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout main
+mgm.txt: needs merge
+error: you need to resolve your current index first
+
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout main
+mgm.txt: needs merge
+error: you need to resolve your current index first
+
+C:\Users\DELL\Desktop\PR raised\Demo>git checkout dev2
+mgm.txt: needs merge
+error: you need to resolve your current index first
+
+C:\Users\DELL\Desktop\PR raised\Demo>git status
+On branch dev3
+Last command done (1 command done):
+   pick ff10aae dev2 changes in mgm.txt
+No commands remaining.
+You are currently rebasing branch 'dev2' on '3739a1f'.
+  (fix conflicts and then run "git rebase --continue")
+  (use "git rebase --skip" to skip this patch)
+  (use "git rebase --abort" to check out the original branch)
+
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+  (use "git add <file>..." to mark resolution)
+        both modified:   mgm.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+C:\Users\DELL\Desktop\PR raised\Demo>git add "mgm.txt"
+
+C:\Users\DELL\Desktop\PR raised\Demo>git commit -m "dev2 changes after conflict in mgm.txt"
+[dev3 8e11cc7] dev2 changes after conflict in mgm.txt
+ 1 file changed, 3 insertions(+)
+
+C:\Users\DELL\Desktop\PR raised\Demo>git push
+fatal: The current branch dev3 has no upstream branch.
+To push the current branch and set the remote as upstream, use
+
+    git push --set-upstream origin dev3
+
+To have this happen automatically for branches without a tracking
+upstream, see 'push.autoSetupRemote' in 'git help config'.
+
+
+C:\Users\DELL\Desktop\PR raised\Demo> git push --set-upstream origin dev3
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 335 bytes | 335.00 KiB/s, done.
+Total 3 (delta 1), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+remote:
+remote: Create a pull request for 'dev3' on GitHub by visiting:
+remote:      https://github.com/Vijaya72569/Demo/pull/new/dev3
+remote:
+To https://github.com/Vijaya72569/Demo.git
+ * [new branch]      dev3 -> dev3
+branch 'dev3' set up to track 'origin/dev3'.
+
+C:\Users\DELL\Desktop\PR raised\Demo>
+
+
