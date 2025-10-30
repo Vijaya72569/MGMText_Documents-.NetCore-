@@ -161,16 +161,12 @@ namespace WebAppFname.Controllers
                 {
                     ViewBag.div = model.div;
                 }
-
-
                
             }
             return View(model);
             
         }
-       
-           
-       
+                  
     }
 }
 
