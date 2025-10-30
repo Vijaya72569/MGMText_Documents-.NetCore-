@@ -1,0 +1,235 @@
+WebApi using Swagger
+===========================================================================================
+open visual studio 2022->
+create new project->asp.net webapplication(model-view-controller)->next->
+project name:WebApiSwagger
+next->.dot net core 8.0(long-term-support)->create
+=================================================================================================================
+appsettings.json
+
+  "ConnectionStrings": {
+  "getcon": "server=DESKTOP-11SVQ2U;Initial Catalog=mygominds;Integrated Security=SSPI;TrustServerCertificate=True;"
+}
+================================================================================================================
+go to tools->Nuget Package Manager->Manage Nuget Package for->
+select->All(package source1->https://api.nuget.org/v3/index.json
+package source2->https://package.nuget.org/api/v2)
+Browse->Microsoft.Data.SqlClient->select project->version->6.0.2->install->IAccept->ok
+Browse->Swashbuckle.AspNetCore->
+select project->version->6.0.2->install->IAccept->ok
+
+========================================================================================================================
+right click on Model->add-> class->name:EmpModel->add
+
+Emp.cs
+
+namespace WebApiSwagger.Models
+{
+    public class Emp
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public decimal Salary { get; set; }
+
+        public long Phone { get; set; }
+    }
+}
+
+=================================================================================================================================
+right click on Model->add-> class->name:EmpRepo->add
+
+EmpRepo.cs
+using Microsoft.Data.SqlClient;
+using System.Data;
+
+namespace WebApiSwagger.Models
+{
+    public class EmpRepo
+    {
+        private readonly string constring;
+        public EmpRepo(IConfiguration configuration)
+        {
+            constring = configuration.GetConnectionString("getcon")!;
+        }
+        public void Add(Emp emp)
+        {
+            SqlConnection con = new SqlConnection(constring);
+            string query = "Insert into Emp (Name,Salary,Phone) Values(@name,@sal,@phno)";
+            SqlCommand cmd = new SqlCommand(query, con);
+            cmd.CommandType = CommandType.Text;
+            cmd.Parameters.AddWithValue("@name", emp.Name);
+            cmd.Parameters.AddWithValue("@sal", emp.Salary);
+            cmd.Parameters.AddWithValue("@phno", emp.Phone);
+            con.Open();
+            cmd.ExecuteNonQuery();
+            con.Close();
+        }
+        public List<Emp> GetAll()
+        {
+            List<Emp> emps = new List<Emp>();
+            SqlConnection con = new SqlConnection(constring);
+            con.Open();
+            string query = "select * from emp";
+            SqlCommand cmd = new SqlCommand(query, con);
+            cmd.CommandType = CommandType.Text;
+            SqlDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                emps.Add(new Emp()
+                {
+                    Id = Convert.ToInt32(reader["id"]),
+                    Name = reader["Name"].ToString(),
+                    Salary = Convert.ToDecimal(reader["Salary"]),
+                    Phone = Convert.ToInt64(reader["Phone"])
+
+                });
+            }
+            return emps;
+        }
+
+        public void Update(Emp emp)
+        {
+            SqlConnection con = new SqlConnection(constring);
+            string query = "Update Emp Set Name=@name,Salary=@sal,Phone=@phno where Id=@id";
+            SqlCommand cmd = new SqlCommand(query, con);
+            cmd.CommandType = CommandType.Text;
+            cmd.Parameters.AddWithValue("@id", emp.Id);
+            cmd.Parameters.AddWithValue("@name", emp.Name);
+            cmd.Parameters.AddWithValue("@sal", emp.Salary);
+            cmd.Parameters.AddWithValue("@phno", emp.Phone);
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+        public void Delete(int id)
+        {
+            SqlConnection con = new SqlConnection(constring);
+            string query = "Delete from Emp where Id=@id";
+            SqlCommand cmd = new SqlCommand(query, con);
+            cmd.CommandType = CommandType.Text;
+            cmd.Parameters.AddWithValue("@id", id);
+
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+        public Emp GetEmp(int id)
+        {
+            Emp emp = new Emp();
+            SqlConnection con = new SqlConnection(constring);
+            string query = "select * from Emp where Id=@id";
+            SqlCommand cmd = new SqlCommand(query, con);
+            cmd.CommandType = CommandType.Text;
+            cmd.Parameters.AddWithValue("@id", id);
+            con.Open();
+            SqlDataReader reader = cmd.ExecuteReader();
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {
+                    emp = new()
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Name = reader["Name"].ToString(),
+                        Salary = Convert.ToDecimal(reader["Salary"]),
+                        Phone = Convert.ToInt64(reader["Phone"])
+
+                    };
+                }
+                reader.Close();
+            }
+            return emp;
+        }
+    }
+}
+
+
+============================================================================================================================
+right click on controller-> add controller ->Api->Api controller empty->name:EmpController->add
+============================================================================================================================
+EmpController.cs
+==========================================================================================================================
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using WebApiSwagger.Models;
+
+namespace WebApiSwagger.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class EmpController : ControllerBase
+    {
+        private readonly EmpRepo _empRepo;
+        public EmpController(EmpRepo empRepo)
+        {
+
+            _empRepo = empRepo;
+
+        }
+        [HttpGet]
+        public IActionResult Get()
+        {
+            var emps = _empRepo.GetAll();
+            return Ok(emps);
+        }
+        [HttpGet("{id}")]
+        public IActionResult Get(int id)
+        {
+            var emp = _empRepo.GetAll().FirstOrDefault(x => x.Id == id);
+            // var em=_empRepo.GetEmp(id);
+            return Ok(emp);
+        }
+        [HttpPost]
+        public IActionResult Post([FromBody] Emp emp)
+        {
+            _empRepo.Add(emp);
+            return Ok(emp);
+        }
+        [HttpPut("{id}")]
+        public IActionResult Put(Emp emp, int id)
+        {
+            emp.Id = id;
+            _empRepo.Update(emp);
+            return Ok(emp);
+
+        }
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
+        {
+            _empRepo.Delete(id);
+            return Ok(id);
+        }
+    }
+}
+
+==================================================================================================
+Program.cs
+
+// Register EmpRepository
+builder.Services.AddSingleton<EmpRepo>();
+//builder.Services.AddEndpointsApiExplorer(); // Needed for Swagger
+builder.Services.AddSwaggerGen();           // Needed for Swagger
+//Add this lines out side if condition
+app.UseSwagger();
+app.UseSwaggerUI();
+
+app.MapControllers();
+========================================================================================================
+
+Rebuild your solution.
+
+Run the app.
+
+Open browser: https://localhost:<port>/swagger //bydefault:https://localhost:44356/ you see this
+
+https://localhost:44356/swagger
+
+You should see all API endpoints (GET, POST, etc. for /api/emp).
+
+===========================================================================================
+
+Swashbuckle.AspNetCore
+
+==========================================================================
+
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
