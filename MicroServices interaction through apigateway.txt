@@ -1,0 +1,226 @@
+
+//MICRO SERVICES Example: Using ASP.NET CORE (SWAGGER)
+
+=======================================================
+
+Create MicroServices in .NetCore8(LTM) (Static data)
+===================================================================================
+Create  1st MicroServices like ProductService
+=======================================================================================
+Open visual studio 2022->
+Create new project->ASP.NET Core Web API->next->
+Project name:ProductService
+Next->.dot net core 8.0->
+Location: Choose folder path->Click Next
+
+Authentication Type: Choose "None"
+
+Check ✅ “Use controllers (uncheck minimal APIs)” — if you want controller-based API (like you’re building)
+
+Click Create
+==================================================================================
+
+===============================================================================================
+Right click on controller->add controller->API=>API controller empty->name:EmpController.cs->enter
+=========================================================================================
+ProductController.cs
+=========================================================================================
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
+namespace ProductService_swagger_.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ProductController : ControllerBase
+    {
+        [HttpGet("{id}")]
+        public IActionResult GetProduct(int id)
+        {
+            return Ok(new { Id = id, Name = "Laptop", Price = 50000 });
+        }
+
+    }
+}
+
+=================================================================================================
+
+Run Application
+===============================================================================================
+https://localhost:5254/swagger/index.html
+
+=>View all your API endpoints (GET)
+
+Click on the endpoint
+
+Click the "Try it out" button
+
+Then click "Execute"
+
+You will see the JSON result below
+
+=================================================================================================
+Create 2nd MicroService like StudentService 
+===================================================================
+Open visual studio 2022->
+Create new project->ASP.NET Core Web API->next->
+Project name:OrderService
+Next->.dot net core 8.0->
+Location: Choose folder path->Click Next
+
+Authentication Type: Choose "None"
+
+Check ✅ “Use controllers (uncheck minimal APIs)” — if you want controller-based API (like you’re building)
+
+Click Create
+========================================================================
+Right click on controller->add controller->API=>API controller empty->name:OrderController.cs->enter
+=========================================================================================
+OrderController.cs
+================================================================================
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
+namespace OrderService.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class OrderController : ControllerBase
+    {
+        private readonly HttpClient _httpClient;
+        public OrderController(IHttpClientFactory httpClientFactory)
+        {
+            _httpClient = httpClientFactory.CreateClient();
+        }
+    
+        [HttpGet("place/{productId}")]
+        public async Task<IActionResult> PlaceOrder(int productId)
+        {
+            var response = await _httpClient.GetStringAsync($"http://localhost:5254/api/product/{productId}");
+            return Ok(new { OrderId = 1, Product = response, Status = "Order Placed" });
+        }
+    }
+}
+=================================================================================================
+Program.cs
+================================================================================================
+//Add this line code
+
+builder.Services.AddControllers();
+builder.Services.AddHttpClient();
+
+Run Application
+===============================================================================================
+https://localhost:5107/swagger/index.html
+
+=>View all your API endpoints (GET)
+
+Click on the endpoint
+
+Click the "Try it out" button
+
+Then click "Execute"
+
+You will see the JSON result below
+
+==============================================================================================
+Create APIGateWay Service
+==============================================================================================
+
+Open visual studio 2022->
+Create new project->ASP.NET Core Web API->next->
+Project name:APIGateWayService
+Next->.dot net core 8.0->
+Location: Choose folder path->Click Next
+
+Authentication Type: Choose "None"
+
+Check ✅ “Use controllers (uncheck minimal APIs)” — if you want controller-based API (like you’re building)
+
+Click Create
+=============================================================================================
+go to Tools->Nuget package manager->package manager console->
+PM> Install-Package Ocelot->enter 
+Go to Build:Build Application->then
+==============================================================================================
+Right click on APIGateWay(Your Apllication)->add new item->
+select->Json file->name:ocelot.json->add
+==============================================================================================
+ocelot.json
+==============================================================================================
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/product/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5254
+        }
+      ],
+      "UpstreamPathTemplate": "/product/{id}",
+      "UpstreamHttpMethod": [ "GET", "POST" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/order/place/{productId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5107
+        }
+      ],
+      "UpstreamPathTemplate": "/order/place/{productId}",
+      "UpstreamHttpMethod": [ "GET" ]
+
+
+    }
+
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:5287"
+  }
+
+}
+
+============================================================================================== 
+**port number  is in launchsettings.json file**
+==============================================================================================
+Program.cs
+==============================================================================================
+// import this namespaces
+using Ocelot.DependencyInjection;
+using Ocelot.Middleware;
+
+
+//Add Ocelot
+builder.Configuration.AddJsonFile("ocelot.json",optional:false,reloadOnChange:true);
+builder.Services.AddOcelot(builder.Configuration);
+var app = builder.Build();
+// add this line
+
+await app.UseOcelot();
+(or)
+app.UseOcelot().Wait();
+
+===============================================================================================
+Run the APIGateWay Service
+
+default:port:http://localhost:5122/swagger
+
+http://localhost:5122/Product->enter->
+you will  see the Json result  of 1st micro service
+
+http://localhost:5122/order/place/1->enter
+you will see the Json result of 2st micro service
+
+
+
+
+
+
+
+
+
+
