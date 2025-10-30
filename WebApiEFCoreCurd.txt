@@ -1,0 +1,334 @@
+WebApi Crud Using EF Core
+====================================================================
+Create table
+CREATE TABLE Emp (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Name NVARCHAR(100),
+    Salary DECIMAL(18,2),
+    Phone BIGINT
+);
+
+==============================================================
+import namespaces go to  tools->nuget package manage->
+Install-Package Microsoft.EntityFrameworkCore.SqlServer
+Install-Package Microsoft.EntityFrameworkCore.Tools
+
+=================================================================
+"ConnectionStrings": {
+  "getcon": "server=localhost;database=WebApi;Integrated Security=SSPI;TrustServerCertificate=True;"
+}
+==================================================================
+EmpModel.cs
+
+namespace WebAPIEFCurd.Models
+{
+    public class Emp
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public decimal Salary {  get; set; }
+        public long Phone {  get; set; }    
+    }
+}
+
+=================================================================
+right click on Models folder->add class->EmpDbContext
+EmpDbContext.cs
+
+using Microsoft.EntityFrameworkCore;
+
+namespace WebApiSwagger.Models
+{
+    public class EmpDbContext : DbContext
+    {
+        public EmpDbContext(DbContextOptions<EmpDbContext> options) : base(options) { }
+
+        public DbSet<Emp> Emp { get; set; }
+    }
+}
+===============================================================
+right click on Models folder->add class->EmpRepository
+
+EmpRepository.cs
+
+namespace WebAPIEFCurd.Models
+{
+    public class EmpRepository
+    {
+        private readonly EmpDbContext _db;
+        public EmpRepository(EmpDbContext db)
+        {
+        _db = db;
+        
+        }
+        public List<Emp> GetAll()
+        {
+            return _db.Emp.ToList();
+        }
+        public Emp? GetById(int id)
+        {
+            return _db.Emp.SingleOrDefault(e => e.Id == id);
+        }
+        public void Add(Emp emp)
+        {
+            _db.Emp.Add(emp);
+            _db.SaveChanges();
+        }
+
+        public void Update(Emp emp)
+        {
+            _db.Emp.Update(emp);
+            _db.SaveChanges();
+        }
+        public void Delete(int id)
+        {
+            var delemp= _db.Emp.Find(id);
+            if (delemp != null)
+            {
+
+                _db.Emp.Remove(delemp);
+                _db.SaveChanges();
+            }
+        }
+
+    }
+}
+
+=============================================================
+right click on Controller folder->add controller->select api->api controller empty->name:Emp
+
+EmpController.cs
+
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using WebAPIEFCurd.Models;
+
+namespace WebAPIEFCurd.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class EmpController : ControllerBase
+    {
+        private readonly EmpRepository _empRepository;
+        public EmpController(EmpRepository empRepository)
+        {
+            _empRepository = empRepository;
+
+        }
+        [HttpGet]
+        public List<Emp> Get()
+        {
+            return _empRepository.GetAll();
+        }
+        [HttpPost]
+        public IActionResult Post([FromBody] Emp emp)
+        {
+            _empRepository.Add(emp);
+            return CreatedAtAction(nameof(Get), new { id = emp.Id }, emp); // ✅ 201 Created
+            //return Ok(emp);
+        }
+        [HttpGet("{id}")]
+        public IActionResult Get(int id)
+        {
+           var emp= _empRepository.GetById(id);
+            if (emp != null)
+            {
+                return Ok(emp);
+            }
+            return NotFound();//404	Record with specified ID does not exist in database.
+        }
+        [HttpPut("{id}")]
+        public IActionResult Put(Emp emp,int id)
+        {
+
+            if (id != emp.Id)
+            {
+                return BadRequest("not Available");
+            }
+            _empRepository.Update(emp);
+          //  return Ok(emp);
+            return NoContent(); // 204: success with no body
+        }
+        [HttpDelete]
+        public IActionResult Delete(int id)
+        {
+            var delid = _empRepository.GetAll().FirstOrDefault(x => x.Id == id);
+            if (delid != null)
+            {
+                _empRepository.Delete(id);
+                return Ok(id);
+            }
+            return BadRequest("not Available");
+           
+        }
+    }
+}
+========================================================================================
+Program.cs
+
+//Add This lines
+
+builder.Services.AddDbContext<EmpDbContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("getcon"));
+
+});
+builder.Services.AddScoped<EmpRepository>();
+
+
+
+================================================================================
+complete.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+========================================================================
+
+
+
+
+
+using Microsoft.EntityFrameworkCore;
+
+namespace WebApiSwagger.Models
+{
+    public class EmpRepository
+    {
+        private readonly EmpDbContext _context;
+        public EmpRepository(EmpDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<List<Emp>> GetAllAsync() => await _context.Emps.ToListAsync();
+
+        public async Task<Emp?> GetByIdAsync(int id) => await _context.Emps.FindAsync(id);
+
+        public async Task AddAsync(Emp emp)
+        {
+            _context.Emps.Add(emp);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAsync(Emp emp)
+        {
+            _context.Entry(emp).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            var emp = await _context.Emps.FindAsync(id);
+            if (emp != null)
+            {
+                _context.Emps.Remove(emp);
+                await _context.SaveChangesAsync();
+            }
+        }
+    }
+}
+
+====================================================================
+using Microsoft.AspNetCore.Mvc;
+using WebApiSwagger.Models;
+
+namespace WebApiSwagger.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class EmpController : ControllerBase
+    {
+        private readonly EmpRepository _repo;
+
+        public EmpController(EmpRepository repo)
+        {
+            _repo = repo;
+        }
+
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            var emps = _repo.GetAll();
+            return Ok(emps);
+        }
+
+        [HttpGet("{id}")]
+        public IActionResult Get(int id)
+        {
+            var emp = _repo.GetById(id);
+            if (emp == null)
+                return NotFound();
+            return Ok(emp);
+        }
+
+        [HttpPost]
+        public IActionResult Post(Emp emp)
+        {
+            _repo.Add(emp);
+            return CreatedAtAction(nameof(Get), new { id = emp.Id }, emp);
+        }
+
+        [HttpPut("{id}")]
+        public IActionResult Put(int id, Emp emp)
+        {
+            if (id != emp.Id)
+                return BadRequest();
+            _repo.Update(emp);
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
+        {
+            _repo.Delete(id);
+            return NoContent();
+        }
+    }
+}
+
+================================================================
+builder.Services.AddDbContext<EmpDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("getcon")));
+builder.Services.AddScoped<EmpRepository>();
+
+====================================================================
+// Connection string
+builder.Services.AddDbContext<EmpDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("getcon")));
+==================================================================
+using Microsoft.EntityFrameworkCore;
+
+namespace WebApiSwagger.Models
+{
+    public class EmpDbContext : DbContext
+    {
+        public EmpDbContext(DbContextOptions<EmpDbContext> options)
+            : base(options) { }
+
+        public DbSet<Emp> Emps { get; set; }
+    }
+}
+=========================================================
