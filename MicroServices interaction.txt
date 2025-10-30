@@ -1,0 +1,147 @@
+Create 2 microservices where one service will interact with other service. Net core
+ChatGPT said:
+Here's a simple implementation of 2 microservices using .NET Core (ASP.NET Core Web API), where:
+
+Microservice A (Client): Makes an HTTP call to...
+
+Microservice B (Server): Provides data via an API.
+
+We’ll implement:
+
+Microservice A: OrderService
+
+Microservice B: ProductService (returns product details)
+
+✅ Microservice B: ProductService (API Provider)
+📁 Project Name: ProductService
+1. Create the project
+dotnet new webapi -n ProductService
+2. Add Product Controller
+📄 Controllers/ProductController.cs
+
+using Microsoft.AspNetCore.Mvc;
+
+namespace ProductService.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ProductController : ControllerBase
+    {
+        [HttpGet("{id}")]
+        public IActionResult GetProduct(int id)
+        {
+            var product = new { Id = id, Name = $"Product-{id}", Price = 100 + id };
+            return Ok(product);
+        }
+    }
+}
+3. Launch URL
+Ensure it runs on a specific port:
+📄 Properties/launchSettings.json
+
+"applicationUrl": "https://localhost:5001"
+✅ Microservice A: OrderService (API Consumer)
+📁 Project Name: OrderService
+1. Create the project
+dotnet new webapi -n OrderService
+2. Add HttpClient support
+📄 Program.cs
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddHttpClient();
+
+var app = builder.Build();
+app.MapControllers();
+app.Run();
+3. Add Order Controller
+📄 Controllers/OrderController.cs
+
+using Microsoft.AspNetCore.Mvc;
+
+namespace OrderService.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OrderController : ControllerBase
+    {
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        public OrderController(IHttpClientFactory httpClientFactory)
+        {
+            _httpClientFactory = httpClientFactory;
+        }
+
+        [HttpGet("{productId}")]
+        public async Task<IActionResult> PlaceOrder(int productId)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var productServiceUrl = $"https://localhost:5001/api/Product/{productId}";
+
+            var response = await client.GetAsync(productServiceUrl);
+            if (response.IsSuccessStatusCode)
+            {
+                var product = await response.Content.ReadAsStringAsync();
+                return Ok(new { Message = "Order Placed", Product = product });
+            }
+
+            return BadRequest("Unable to get product details");
+        }
+    }
+}
+4. Launch URL
+📄 Properties/launchSettings.json
+
+"applicationUrl": "https://localhost:5002"
+🚀 Run Both Services
+Open two terminals.
+
+Navigate to each project folder and run:
+
+dotnet run
+Test the interaction:
+
+Open browser or Postman:
+
+GET https://localhost:5002/api/order/101
+
+🧠 Output Example
+{
+  "message": "Order Placed",
+  "product": "{\"id\":101,\"name\":\"Product-101\",\"price\":201}"
+}
+✅ Summary
+Service	Port	Responsibility
+ProductService	5001	Exposes product API
+OrderService	5002	Calls ProductService via HTTP
+Would you like Docker setup, Swagger integration, or authentication (JWT/key) between the two?
+
+You said:
+Yes 
+ChatGPT said:
+Great! Let’s enhance your .NET Core microservices with:
+
+✅ Docker support
+✅ Swagger UI for testing
+✅ Authentication (JWT-based communication between services)
+
+🧱 Final Architecture
++-------------------+        HTTP + JWT       +-------------------+
+|   OrderService    |  ───────────────────▶   |  ProductService    |
+| (API Consumer)    |                        | (API Provider)     |
++-------------------+                        +-------------------+
+✅ 1. Docker Setup for Both Services
+A. Add Dockerfile in both OrderService and ProductService folders:
+📄 Dockerfile
+
+# Use the .NET SDK image for build
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 80
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy project file and restore
+COPY *.csproj ./
+RUN dot
