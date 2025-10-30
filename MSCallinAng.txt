@@ -1,0 +1,377 @@
+Open visual studio 2022->
+Create new project->ASP.NET Core Web API->next->
+Project name:MgmProductService
+Next->.dot net core 8.0->
+Location: Choose folder path->Click Next
+
+Authentication Type: Choose "None"
+
+Check ✅ “Use controllers (uncheck minimal APIs)” — if you want controller-based API (like you’re building)
+
+Click Create
+========================================================================================
+Go to tools->Nuget Package Manager->Manage Nuget Package for->
+select->All(package source1->https://api.nuget.org/v3/index.json
+package source2->https://package.nuget.org/api/v2)
+Browse->Microsoft.EntityFrameWorkCore->select project->version->9.0.7->install->IAccept->ok
+Browse->Microsoft.EntityFrameWorkCore.SqlServer->select project->version->9.0.7->install->IAccept->ok
+Browse->Microsoft.EntityFrameWorkCore.Design->select project->version->9.0.7->install->IAccept->ok
+Browse->Microsoft.EntityFrameWorkCore.Tools->select project->version->9.0.7->install->IAccept->ok
+=========================================================================================
+Build->Build Solution
+=========================================================================================
+appsetting.json
+
+ "ConnectionStrings": {
+   "getcon": "server=DESKTOP-11SVQ2U;database=Mvc;Integrated Security=SSPI;TrustServerCertificate=True;"
+ }
+
+==========================================================================================
+Add a Models Folder:
+Right-click on the project name MgmProductService
+
+Select Add → New Folder
+Name : Models
+===========================================================================================
+Right-click on the new Models folder → Add → Class->Name:Product.cs
+===========================================================================================
+ Product.cs
+===========================================================================================
+namespace MgmProductService.Models
+{
+    public class Product
+    {
+        public int Id { get; set; }         // Primary Key
+        public string? Name { get; set; }
+        public decimal Price { get; set; }
+    }
+}
+
+===========================================================================================
+Right-click on the new Models folder → Add → Class->Name:ProductDbContext.cs
+===========================================================================================
+ProductDbContext.cs
+===========================================================================================
+using Microsoft.EntityFrameworkCore;
+
+namespace MgmProductService.Models
+{
+    public class ProductDbContext:DbContext
+    {
+        public ProductDbContext(DbContextOptions options) : base(options) { }
+
+        public DbSet<Product> Products { get; set; }
+    }
+}
+
+
+===========================================================================================
+program.ts
+===========================================================================================
+//import this namespaces
+using Microsoft.EntityFrameworkCore;
+using MgmProductService.Models;
+// add this lines
+builder.Services.AddDbContext<ProductDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("getcon")));
+
+// addCors for  access webapi url in angular
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
+
+===========================================================================================
+go to tools->Nuget Package Manager-> Package Manager Console ->
+
+dotnet ef migrations add InitialCreate 
+dotnet ef database update 
+===========================================================================================
+go to Controller->add Controller->select :api->name:ProductController->add->enter
+ProductController.cs
+===========================================================================================
+using MgmProductService.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace MgmProductService.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ProductsController : ControllerBase
+    {
+        private readonly ProductDbContext _context;
+
+        public ProductsController(ProductDbContext context)
+        {
+            _context = context;
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var products = await _context.Products.ToListAsync();
+            return Ok(products);
+        }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetProduct(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+                return NotFound();
+
+            return Ok(product);
+        }
+        [HttpPost]
+        public async Task<IActionResult> AddProduct(Product product)
+        {
+          
+            _context.Products.Add(product);
+            await _context.SaveChangesAsync();
+            //return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+            return Ok(new { message = "Product inserted" });
+        }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProduct(Product product,int id)
+        {
+            var editproduct=await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
+            if (editproduct == null)
+                return NotFound();
+            editproduct.Name = product.Name;
+            editproduct.Price = product.Price;
+          //  _context.Products.Update(editproduct);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Product updated" });
+        }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+           var delproduct=await _context.Products.FirstOrDefaultAsync(y => y.Id == id);
+            if(delproduct == null)
+                return NotFound();
+            _context.Products.Remove(delproduct);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Delete Product" });
+        }
+    }
+}
+
+==========================================================================================
+select ->http-> Run the Application
+
+Browser Shows Api Endpoints ->(GET,POST,PUT,DELETE) Check the results
+==========================================================================================
+Angular Code
+
+=============================================================================
+Open Visual Studio Code->open folder->AngularP->ng new ProductApp->enter->css->enter
+Open ProductApp->
+==========================================================================================
+app.module.ts
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component'
+import { ProductComponent } from './pages/product/product.component';
+import { HttpClientModule } from '@angular/common/http'; //import this
+import { FormsModule } from '@angular/forms'; // import this
+import { OrderComponent } from './pages/order/order.component';
+@NgModule({
+  declarations: [
+    AppComponent,
+    ProductComponent,
+    OrderComponent
+  
+  ],
+  imports: [
+    BrowserModule,
+    AppRoutingModule,
+    HttpClientModule, // add
+    FormsModule // add
+  ],
+  providers: [],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+===========================================================================================
+right click on src->create file name:products.ts->enter
+
+export interface Product{
+    id:number,
+    name:string,
+    price:number
+}
+=========================================================================
+Go to terminal->new terminal->in command promt->
+AngularP/ProductApp/ng new g s product
+2files are created->product.service.ts,
+product.service.spec.ts
+
+product.service.ts
+========================================================================================
+import { Injectable } from '@angular/core';
+import { Product } from '../Models/Products';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+@Injectable({
+  providedIn: 'root'
+})
+export class ProductService {
+
+private Url="https://localhost:44300/api/Products";
+  constructor(private http:HttpClient) { }
+ GetAll():Observable<Product[]>
+ {
+  return this.http.get<Product[]>(this.Url);
+ }
+
+  AddProduct(product:Product):Observable<Product>
+  {
+    return this.http.post<Product>(this.Url,product);
+  }
+  UpdateProduct(id:number,product:Product):Observable<Product>
+  {
+    const url=`${this.Url}/${id}`;
+    return this.http.put<Product>(url,product);
+  }
+  DeleteProduct(id:number):Observable<void>
+  {
+    const url=`${this.Url}/${id}`;
+    return this.http.delete<void>(url);
+  }
+}
+
+====================================================================================
+Go to terminal->new terminal->in command promt->
+AngularP/ProductApp/ng new g c product
+4files are created->
+product.component.css,
+product.component.spec.ts,
+product.component.html,
+product.component.ts. 
+==========================================================================
+product.component.ts
+
+import { Component, OnInit } from '@angular/core';
+import { ProductService } from 'src/app/Services/product.service';
+import { Product } from 'src/app/Models/Products';
+@Component({
+  selector: 'app-product',
+  templateUrl: './product.component.html',
+  styleUrls: ['./product.component.css']
+})
+export class ProductComponent implements OnInit {
+ products:Product[]=[];
+ editmode:boolean=false;
+ newproduct:Product={id:0,name:"",price:0}
+ message:string="";
+  constructor(private service:ProductService) { }
+
+  ngOnInit(): void {
+    this.loadproducts();
+  }
+loadproducts():void{
+  this.service.GetAll().subscribe(
+    data=>this.products=data
+  )
+}
+Addproduct():void{
+  this.service.AddProduct(this.newproduct).subscribe(
+  //  ()=>this.message="insert successfully" (or)
+  {
+    next:(res)=>{
+     console.log(res);
+     this.resetform();
+     this.loadproducts();
+     this.message="insert successfully";
+    },
+    error:(err)=> {
+      console.error('error in adding product');
+      this.message="failed to add product";
+    },
+  }
+  )
+}
+editproduct(product:Product):void{
+this.newproduct={...product}
+this.editmode=true;
+}
+updateproduct():void{
+  this.service.UpdateProduct(this.newproduct.id,this.newproduct)
+  .subscribe({
+    next:(res)=>{
+      console.log(res);
+      this.loadproducts();
+      this.resetform();
+      this.message="update successfully";
+    },
+     error:(err)=>{
+      console.log(err);
+      this.message="error in update"
+    }
+  })
+}
+deleteproduct(id:number):void{
+   if(confirm('Are You Sure Delete?'))
+   {
+  this.service.DeleteProduct(id).subscribe({
+    next:(res)=>{
+      console.log(res);
+      this.loadproducts();
+      this.message="delete successfully";
+    },
+    error:(err)=>{
+      console.log(err);
+      this.message="error in delete"
+    }
+  })
+
+}
+}
+resetform():void{
+  this.newproduct={id:0,name:"",price:0}
+  this.editmode=false;
+}
+}
+========================================================================================
+product.component.html
+
+<p>product works!</p>
+<h1>Products</h1>
+<form (ngSubmit)="editmode ? updateproduct():Addproduct()">
+ <input type="number" [(ngModel)]="newproduct.id" name="id" placeholder="id" readonly> <br>
+<input type="text" [(ngModel)]="newproduct.name" name="name" placeholder="product name" required> <br>
+<input type="number" [(ngModel)]="newproduct.price" name="price" placeholder="price" required> <br>
+<button type="submit">{{editmode? 'Update':'Add'}} Product</button>
+<button type="button" (click)="resetform()" *ngIf="editmode">Cancel</button>
+</form>
+<p *ngIf="message">{{message}}</p>
+<table border="1">
+    <thead>
+        <th>ProductId</th>
+        <th>ProductName</th>
+        <th>ProductPrice</th>
+        <th>Actions</th>
+    </thead>
+    <tbody>
+        <tr *ngFor="let product of products">
+            <td>{{product.id}}</td>
+             <td>{{product.name}}</td>
+              <td>{{product.price}}</td>
+             <td>
+            <button (click)="editproduct(product)">Edit</button>
+            <button (click)="deleteproduct(product.id)">Delete</button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+==================================================================
+go to app.component.html->ctrl+a->ctrl+x->delete code(default)
+<app-product></app-product>
+==================================================================
+Go to terminal->new terminal->in command promt->
+D:\AngularP>cd ProductApp
+D:\AngularP\ProductApp>ng serve(when you run the Angular application WepApi it must be running mode)
+
