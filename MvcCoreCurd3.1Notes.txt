@@ -13,7 +13,7 @@ name:package source2
 source:https://api.nuget.org/v3/index.json
 ->update
 ->ok
-browse:System.data.SqlClient->install->I Accept->ok
+browse:Microsoft.data.SqlClient->install->I Accept->ok
 
 Appsetting.json
 "ConnectionStrings": {
