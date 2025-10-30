@@ -1,0 +1,349 @@
+
+//MICRO SERVICES Example: Using ASP.NET CORE (SWAGGER)
+=======================================================================================
+Create MicroServices in .NetCore8(LTM) (Dynamic data)
+=======================================================================================
+Create  1st MicroServices like MSUser
+=======================================================================================
+Open visual studio 2022->
+Create new project->ASP.NET Core Web API->next->
+Project name:MSUsers
+Next->.dot net core 8.0->
+Location: Choose folder path->Click Next
+
+Authentication Type: Choose "None"
+
+Check ✅ “Use controllers (uncheck minimal APIs)” — if you want controller-based API (like you’re building)
+
+Click Create
+========================================================================================
+Go to tools->Nuget Package Manager->Manage Nuget Package for->
+select->All(package source1->https://api.nuget.org/v3/index.json
+package source2->https://package.nuget.org/api/v2)
+Browse->Microsoft.EntityFrameWorkCore->select project->version->9.0.7->install->IAccept->ok
+Browse->Microsoft.EntityFrameWorkCore.SqlServer->select project->version->9.0.7->install->IAccept->ok
+Browse->Microsoft.EntityFrameWorkCore.Design->select project->version->9.0.7->install->IAccept->ok
+Browse->Microsoft.EntityFrameWorkCore.Tools->select project->version->9.0.7->install->IAccept->ok
+=========================================================================================
+Build->Build Solution
+=========================================================================================
+appsetting.json
+
+ "ConnectionStrings": {
+   "getcon": "server=DESKTOP-11SVQ2U;database=UserDb;Integrated Security=SSPI;TrustServerCertificate=True;"
+ }
+
+==========================================================================================
+Add a Models Folder:
+Right-click on the project name MSUser
+
+Select Add → New Folder
+Name : Models
+===========================================================================================
+Right-click on the new Models folder → Add → Class->Name:Users.cs
+===========================================================================================
+ Users.cs
+===========================================================================================
+namespace MSUser.Models
+{
+    public class Users
+    {
+        public int Id { get; set; }
+        public string? FullName { get; set; }
+        public string? Email { get; set; }
+        public string? Password { get; set; }
+    }
+}
+===========================================================================================
+Right-click on the new Models folder → Add → Class->Name:UserDbContext.cs
+===========================================================================================
+UserDbContext.cs
+===========================================================================================
+using Microsoft.EntityFrameworkCore;
+
+namespace MSUser.Models
+{
+    public class UserDbContext :DbContext
+    {
+        public UserDbContext(DbContextOptions<UserDbContext> options) : base(options) { }
+        public DbSet<Users> Users { get; set; }
+
+    }
+}
+
+===========================================================================================
+program.ts
+===========================================================================================
+//import this namespaces
+using Microsoft.EntityFrameworkCore;
+using MSUser.Models;
+// add this lines
+builder.Services.AddDbContext<UserDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("getcon")));
+
+===========================================================================================
+go to tools->Nuget Package Manager-> Package Manager Console ->
+
+dotnet ef migrations add InitialCreate 
+dotnet ef database update 
+===========================================================================================
+go to Controller->add Controller->select :api->name:UsersController->add->enter
+UsersController.cs
+===========================================================================================
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using MSUser.Models;
+
+namespace MSUser.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class UsersController : ControllerBase
+    {
+        private readonly UserDbContext _userDbContext;
+        public UsersController(UserDbContext userDbContext)
+        { 
+         _userDbContext = userDbContext;
+        }
+
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            var users = _userDbContext.Users.ToList();
+            return Ok(users);
+        }
+        [HttpPost]
+        public IActionResult Adduser(Users users)
+        { 
+        _userDbContext.Users.Add(users);
+            _userDbContext.SaveChanges();
+            return Ok("Insert Successfully");
+        
+        }
+    }
+}
+
+==========================================================================================
+select ->http-> Run the Application
+
+Browser Shows Api Endpoints ->(GET,POST) Check the results
+==========================================================================================
+Create 2nd MicroService like MSBook
+===========================================================================================
+Open visual studio 2022->
+Create new project->ASP.NET Core Web API->next->
+Project name:MSBook
+Next->.dot net core 8.0->
+Location: Choose folder path->Click Next
+
+Authentication Type: Choose "None"
+
+Check ✅ “Use controllers (uncheck minimal APIs)” — if you want controller-based API (like you’re building)
+
+Click Create
+============================================================================================
+
+go to tools->Nuget Package Manager->Manage Nuget Package for->
+select->All(package source1->https://api.nuget.org/v3/index.json
+package source2->https://package.nuget.org/api/v2)
+Browse->Microsoft.EntityFrameWorkCore->select project->version->9.0.7->install->IAccept->ok
+Browse->Microsoft.EntityFrameWorkCore.SqlServer->select project->version->9.0.7->install->IAccept->ok
+Browse->Microsoft.EntityFrameWorkCore.Design->select project->version->9.0.7->install->IAccept->ok
+Browse->Microsoft.EntityFrameWorkCore.Tools->select project->version->9.0.7->install->IAccept->ok
+============================================================================================
+Build->Build Solution
+============================================================================================
+appsetting.json
+
+ "ConnectionStrings": {
+   "getcon": "server=DESKTOP-11SVQ2U;database=BooksDb;Integrated Security=SSPI;TrustServerCertificate=True;"
+ }
+=============================================================================================
+Add a Models Folder:
+Right-click on the project name MSBooks
+
+Select Add → New Folder
+Name : Models
+=============================================================================================
+Right-click on the new Models folder → Add → Class->Name:Book.cs
+=============================================================================================
+ Book.cs
+=============================================================================================
+namespace MSBooks.Models
+{
+    public class Book
+    {
+        public int Id { get; set; }
+        public string? Title { get; set; }
+        public string? Author { get; set; }
+        public decimal Price { get; set; }
+        public int Stock { get; set; }
+    }
+}
+============================================================================================
+Right-click on the new Models folder → Add → Class->Name:BookDbContext.cs
+============================================================================================
+using Microsoft.EntityFrameworkCore;
+
+namespace MSBooks.Models
+{
+    public class BookDbContext :DbContext
+    {
+        public BookDbContext(DbContextOptions<BookDbContext> options) : base(options) { }
+        public DbSet<Book> Books { get; set; }
+    }
+}
+
+===========================================================================================
+program.ts
+
+import this namespaces
+
+using Microsoft.EntityFrameworkCore;
+using MSBooks.Models;
+// add this lines
+builder.Services.AddDbContext<BookDbContext>(options=>
+options.UseSqlServer(builder.Configuration.GetConnectionString("getcon")));
+============================================================================================
+go to tools->Nuget Package Manager-> Package Manager Console ->
+
+dotnet ef migrations add InitialCreate 
+dotnet ef database update 
+=============================================================================================
+Go to Controller->add Controller->select :api->name:BooksController->add->enter
+BooksController.cs
+=============================================================================================
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using MSBooks.Models;
+
+namespace MSBooks.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class BooksController : ControllerBase
+    {
+        private readonly BookDbContext _db;
+        public BooksController(BookDbContext bookDbContext) 
+        { 
+        _db = bookDbContext;
+        }
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            var books = _db.Books.ToList();
+            return Ok(books);
+        }
+        [HttpPost]
+        public IActionResult Add(Book book)
+        {
+            _db.Books.Add(book);
+            _db.SaveChanges();
+            return Ok("insert Successfully");
+        }
+        [HttpPut]
+        public IActionResult Update(Book book)
+        {
+            _db.Books.Update(book);
+            _db.SaveChanges();
+            return Ok("Update Successfully");
+        }
+        [HttpDelete]
+        public IActionResult Delete(int id)
+        {
+            var delbook= _db.Books.Find(id);
+            _db.Books.Remove(delbook);
+            _db.SaveChanges();
+            return Ok("delete this id" + id);
+        }
+    }
+}
+
+============================================================================================
+select ->http-> Run the Application
+
+ Browser Shows Api Endpoints ->(GET,POST,PUT,DELETE) Check the results
+============================================================================================
+
+Create   APIGateWayService like MSWebApi
+============================================================================================
+Open visual studio 2022->
+Create new project->ASP.NET Core Web API->next->
+Project name:MSWebApi
+Next->.dot net core 8.0->
+Location: Choose folder path->Click Next
+
+Authentication Type: Choose "None"
+
+Check ✅ “Use controllers (uncheck minimal APIs)” — if you want controller-based API (like you’re building)
+
+Click Create
+
+go to tools->Nuget Package Manager->Manage Nuget Package for->
+select->All(package source1->https://api.nuget.org/v3/index.json
+package source2->https://package.nuget.org/api/v2)
+Browse->Ocelot->select project->version->24.0.0->install->IAccept->ok
+=============================================================================================
+Go to Build->Build Solution
+=============================================================================================
+Right Click on->MSWebApi(Application)->add new item->select->JSON File->name :ocelot.json->add
+=============================================================================================
+ocelot.json
+=============================================================================================
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/Users/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5075 // this is MSUsers  (http) port  running number // (our 1stMicroservice)
+        }
+      ],
+      "UpstreamPathTemplate": "/Users/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST" ]
+    },
+
+    {
+      "DownstreamPathTemplate": "/api/Books/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5225 // this is MSBooks (http)  port running number // (our 2stMicroservice)
+        }
+      ],
+      "UpstreamPathTemplate": "/Books/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+    }
+
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:5111" // this is MSWebApi (http) running port number // (our ApiGateWay)
+  }
+  
+}
+=============================================================================================
+program.cs
+=============================================================================================
+//import this namespaces
+using Ocelot.DependencyInjection;
+using Ocelot.Middleware;
+// add these lines code
+builder.Configuration.AddJsonFile("ocelot.json", optional: true,reloadOnChange:true);
+builder.Services.AddOcelot(builder.Configuration);
+await app.UseOcelot();
+=============================================================================================
+select ->http-> Run Application
+=============================================================================================
+default :http://localhost:5111/swagger/index.html
+enter this Url:http://localhost:5111/Users
+Display:Users Data
+enter this Url:http://localhost:5111/Books
+Display:Books Data
+=============================================================================================
+                                                                                *Practice Well*
+
+
+
