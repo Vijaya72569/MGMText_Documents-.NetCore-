@@ -1,0 +1,162 @@
+
+1. Introduction to ADO.NET
+ Definition:
+ADO.NET (ActiveX Data Objects .NET) is a data access technology provided by the .NET Framework used to interact with databases such as SQL Server, Oracle, or any OLE DB-supported source.
+
+2. Components of ADO.NET
+Component	Description
+Connection	Establishes connection with the database.
+Command	Executes SQL queries or stored procedures.
+DataReader	Reads data in forward-only, read-only mode.
+DataAdapter	Acts as a bridge between DataSet and database.
+DataSet	In-memory cache of data (disconnected).
+DataTable	Represents a table in memory.
+DataView	Provides sorting and filtering of DataTable.
+
+3. ADO.NET Namespaces
+Namespace	Description
+System.Data	Core classes of ADO.NET.
+System.Data.SqlClient	Classes for SQL Server.
+System.Data.OleDb	For OLE DB data sources.
+System.Data.Odbc	For ODBC data sources.
+
+4. Establishing a Database Connection	
+
+using Microsoft.Data.SqlClient;
+
+SqlConnection con = new SqlConnection("Data Source=localhost;=StudentDB;Integrated Security=True");
+con.Open();
+Console.WriteLine("Connection Opened Successfully");
+con.Close();
+5. Using SqlCommand
+SqlCommand cmd = new SqlCommand("INSERT INTO Students(Name, Age) VALUES('Ravi', 21)", con);
+cmd.ExecuteNonQuery();
+
+Example (Select Query):
+SqlCommand cmd = new SqlCommand("SELECT * FROM Students", con);
+SqlDataReader dr = cmd.ExecuteReader();
+while(dr.Read())
+{
+    Console.WriteLine(dr["Name"] + " - " + dr["Age"]);
+}
+dr.Close();
+
+6. SqlDataReader (Connected Architecture)
+•Used for fast, forward-only data reading.
+•Cannot modify data or move backward.
+SqlCommand cmd = new SqlCommand("SELECT * FROM Employee", con);
+SqlDataReader reader = cmd.ExecuteReader();
+while(reader.Read())
+{
+    Console.WriteLine(reader["EmpName"]);
+}
+reader.Close();
+
+7. SqlDataAdapter and DataSet (Disconnected Architecture)
+•SqlDataAdapter acts as a bridge between the database and the DataSet.
+•DataSet stores data in memory — no need to maintain a continuous connection.
+SqlDataAdapter da = new SqlDataAdapter("SELECT * FROM Employee", con);
+DataSet ds = new DataSet();
+da.Fill(ds, "Employee");
+
+foreach (DataRow row in ds.Tables["Employee"].Rows)
+{
+    Console.WriteLine(row["EmpName"]);
+}
+
+8. Performing CRUD Operations
+Create (Insert):
+SqlCommand cmd = new SqlCommand("INSERT INTO Employee(Name, Salary) VALUES(@n, @s)", con);
+cmd.Parameters.AddWithValue("@n", "John");
+cmd.Parameters.AddWithValue("@s", 50000);
+cmd.ExecuteNonQuery();
+
+Read:
+SqlCommand cmd = new SqlCommand("SELECT * FROM Employee", con);
+SqlDataReader dr = cmd.ExecuteReader();
+Update:
+Update:
+SqlCommand cmd = new SqlCommand("UPDATE Employee SET Salary=@s WHERE Name=@n", con);
+cmd.Parameters.AddWithValue("@s", 60000);
+cmd.Parameters.AddWithValue("@n", "John");
+cmd.ExecuteNonQuery();
+
+Delete:
+SqlCommand cmd = new SqlCommand("DELETE FROM Employee WHERE Name=@n", con);
+cmd.Parameters.AddWithValue("@n", "John");
+cmd.ExecuteNonQuery();
+
+
+
+=====================================================================================================================================================================
+
+Class	                  Purpose                    	                                                       Important Methods	                                                                                             Description / Use Case
+SqlConnection	Establishes connection to SQL Server.	                  Open(), Close()	                                                                                             Used to open/close connection with the database.
+SqlCommand	Executes SQL queries or stored procedures.	ExecuteReader(), ExecuteScalar(), ExecuteNonQuery()	Used for executing SQL statements.
+SqlDataReader	Reads data row by row (forward-only).	                  Read()	                                                                                                                Used in Connected Architecture to fetch data.
+SqlDataAdapter	Acts as a bridge between DB and DataSet.	                  Fill(), Update()	                                                                                             Used in Disconnected Architecture.
+DataSet / DataTable	In-memory representation of data.	                   Access via .Tables[], .Rows[]	                                                                           Used to hold data temporarily.
+=====================================================================================================================================================================
+How to connect  database(sql server) to console application using Ado.net code
+================================================================================
+Open visual studio 2022->
+create new project->ConsoleApp(.NetFramework)->next->
+project name:ConCrud
+next->.dot net core 8->create
+
+click on tools->install nuget manager->manage nuget packages for solution
+click on-setting icon
+click on-add icon
+name:package source1
+source:https://packages.nuget.org/api/v2
+->update
+click on-add icon
+name:package source2
+source:https://api.nuget.org/v3/index.json
+->update
+->ok
+Package sorce select all 
+
+browse:Microsoft.data.SqlClient->install->I Accept->ok
+
+program.cs
+
+====================================================================
+
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ConCrud
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            string connectionString = "Data Source=DESKTOP-11SVQ2U;Initial Catalog=demodb;Integrated Security=True";
+
+            SqlConnection con = new SqlConnection(connectionString);
+            con.Open();
+            //string query = "Select * from Employee";
+            //SqlCommand cmd = new SqlCommand(query, con);
+            //SqlDataReader reader = cmd.ExecuteReader();
+            //while (reader.Read())
+            //{
+            //    Console.WriteLine(reader["Eid"] + " " + reader["Ename"] + " " + reader["Salary"]);
+            //}
+
+            Console.WriteLine("Connection Opened Successfully");
+            con.Close();
+        }
+
+    }
+}
+
+=====================================================================
+Run the application
+see o/p in console
+
+
