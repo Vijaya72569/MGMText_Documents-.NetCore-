@@ -1,0 +1,351 @@
+MVCCURD in Multipage
+==============================================================================================
+create database demodb
+use demodb
+create table Employee(Eid int primary key,Ename varchar(50),Salary decimal)
+
+insert into Employee values(101,'Ajay',25000)
+
+select * from Employee
+
+=========================================================================================
+open visual studio 2022->
+create new project->asp.net webapplication(model-view-controller)->next->
+project name:WebAppCrud
+next->.dot net core 8.0->create
+click on tools->install nuget manager->manage nuget packages for solution
+click on-setting icon
+click on-add icon
+name:package source1
+source:https://packages.nuget.org/api/v2
+->update
+click on-add icon
+name:package source2
+source:https://api.nuget.org/v3/index.json
+->update
+->ok
+click on Browse:
+Microsoft.EntityFrameworkCore->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFramework.Design->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFramework.SqlServer->select project->version:8.0.0->install->ok->I Accept
+Microsoft.EntityFramework.Tools->select project->version:8.0.0->install->ok->I Accept
+
+Appsettings.json
+ "AllowedHosts": "*",
+ "ConnectionStrings": {
+   "DedaultConnection":"Server=localhost;Database=demodb;Integrated Security=True;TrustServerCertificate=True;"
+   
+ }
+
+Right click on Model->add->class->name:Employee->add
+
+Employee.cs
+
+namespace WebAppCrud.Models
+{
+    public class Employee
+    {
+        public int Eid { get; set; }
+        public string? Ename { get; set; }
+        public decimal Salary { get; set; }
+    }
+}
+
+=======================================================================================
+================================================================================================
+Right click on Model->add->class->name:EmpRepo->add
+
+EmpRepo.cs
+
+using Microsoft.Data.SqlClient;
+namespace WebAppCrud.Models
+{
+    public class EmpRepo
+    {
+        private string connectionString;
+        public EmpRepo(IConfiguration configuration)
+        {
+            connectionString=configuration.GetConnectionString("DedaultConnection")!;
+        }
+        public void AddEmployee(Employee emp)
+        {
+            SqlConnection con =new SqlConnection(connectionString);
+            con.Open();
+            string query="insert into Employee values(@Eid,@Ename,@Salary)";
+            SqlCommand cmd =new SqlCommand(query,con);
+            cmd.Parameters.AddWithValue("@Eid", emp.Eid);
+            cmd.Parameters.AddWithValue("@Ename", emp.Ename);
+            cmd.Parameters.AddWithValue("@Salary", emp.Salary);
+            cmd.ExecuteNonQuery();
+
+        }
+
+        public List<Employee> GetAllEmployee()
+        {             
+            List<Employee> employees=new List<Employee>();
+            SqlConnection con =new SqlConnection(connectionString);
+            con.Open();
+            string query="select * from Employee";
+            SqlCommand cmd =new SqlCommand(query,con);
+            SqlDataReader reader=cmd.ExecuteReader();
+            while(reader.Read())
+            {
+                Employee emp=new Employee();
+                emp.Eid=Convert.ToInt32( reader["Eid"]);
+                emp.Ename=reader["Ename"].ToString()!;
+                emp.Salary=Convert.ToDecimal( reader["Salary"]);
+                employees.Add(emp);
+            }
+            return employees;
+        }
+        public void UpdateEmployee(Employee emp)
+        {
+            SqlConnection con =new SqlConnection(connectionString);
+            con.Open();
+            string query="update Employee set Ename=@Ename,Salary=@Salary where Eid=@Eid";
+            SqlCommand cmd =new SqlCommand(query,con);
+            cmd.Parameters.AddWithValue("@Eid", emp.Eid);
+            cmd.Parameters.AddWithValue("@Ename", emp.Ename);
+            cmd.Parameters.AddWithValue("@Salary", emp.Salary);
+            cmd.ExecuteNonQuery();
+        } 
+        public void DeleteEmployee(Employee emp)
+        {
+            SqlConnection con =new SqlConnection(connectionString);
+            con.Open();
+            string query="delete from Employee where Eid=@Eid";
+            SqlCommand cmd =new SqlCommand(query,con);
+            cmd.Parameters.AddWithValue("@Eid", emp.Eid);
+            cmd.ExecuteNonQuery();
+
+        }
+            
+    }
+}
+
+
+=================================================================================================================================
+
+right click on controller->add controller->mvc controller empty->name:EmployeeController.cs->enter
+
+EmployeeController.cs
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using WebAppCrud.Models;
+
+namespace WebAppCrud.Controllers
+{
+    public class EmployeeController : Controller
+    {
+        EmpRepo _empRepo;
+        public EmployeeController(EmpRepo emprepo)
+        {
+            _empRepo = emprepo;
+        }
+        public IActionResult Index()
+        {
+            var employees = _empRepo.GetAllEmployee();
+            return View(employees);
+        }
+        public IActionResult Create()
+        {
+            return View();
+        }
+        [HttpPost]
+        public IActionResult Create(Employee emp)
+        {
+            _empRepo.AddEmployee(emp);
+            return RedirectToAction("Index");
+        }
+        [HttpGet]
+        public IActionResult Edit(int id)
+        {
+            var employees = _empRepo.GetAllEmployee();
+            var emp = employees.FirstOrDefault(e => e.Eid == id);
+            if (emp == null)
+            {
+                return NotFound();
+            }
+            return View(emp);
+        }
+        [HttpPost]
+        public IActionResult Edit(Employee emp)
+        {
+            _empRepo.UpdateEmployee(emp);
+            return RedirectToAction("Index");
+        }
+        [HttpGet]
+        public IActionResult Delete(int id)
+        {
+            var employees = _empRepo.GetAllEmployee();
+            var emp = employees.FirstOrDefault(e => e.Eid == id);
+            if (emp!= null)
+            {
+                _empRepo.DeleteEmployee(emp);
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+
+    }
+}
+
+
+=================================================================================================================================
+
+Right click on -Create()[HttpPost]->add view->razor view empty->
+Name:Create->add
+Create.cshtml
+
+
+@model WebAppCrud.Models.Employee
+<form asp-action="Create" method="post">
+    <label asp-for="Eid"></label>
+    <input asp-for="Eid" /> <br />
+    <label asp-for="Ename"></label>
+    <input asp-for="Ename" /> <br />
+    <label asp-for="Salary"></label>
+    <input asp-for="Salary" /> <br />
+
+    <input type="submit" value="submit" />
+
+
+
+</form>
+=============================================================================================================================
+Right click on -Index()->add view->razor view empty->
+Name:Index->add
+Index.cshtml
+
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+@model IEnumerable<WebAppCrud.Models.Employee>
+<h2>Employee List</h2>
+<table border="1">
+    <tr>
+        <th>
+            EmployeeId
+        </th>
+        <th>
+            Employeename
+        </th>
+        <th>
+            EmployeeSalary
+        </th>
+    </tr>
+    <tr>
+        @foreach(var emp in Model)
+        {
+            <tr>
+                <td>
+                    @emp.Eid
+                </td>
+                <td>
+                    @emp.Ename
+                </td>
+                <td>
+                    @emp.Salary
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@emp.Eid">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@emp.Eid">Details</a> |
+                      @Html.ActionLink("Delete","Delete",new { id =emp.Eid},new {onclick="return confirm('Are You Sure Delete?')"})
+                </td>
+            </tr>
+    }
+    
+</table>
+=====================================================================================================================
+Right click on -Edit()[HttpPost]->add view->razor view empty->
+Name:Edit->add
+Edit.cshtml
+
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+@model WebAppCrud.Models.Employee
+<form asp-action="Edit" method="post">
+    <label asp-for="Eid"></label>
+    <input asp-for="Eid" /> <br />
+    <label asp-for="Ename"></label>
+    <input asp-for="Ename" /> <br />
+    <label asp-for="Salary"></label>
+    <input asp-for="Salary" /> <br />
+
+    <input type="submit" value="update" />
+
+</form>
+
+============================================================================================================================
+Program.ts
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<EmpRepo>(); //add this line
+
+ pattern: "{controller=Employee}/{action=Index}/{id?}");
+ 
+application Run
+
+=====================================================================================================================================
+builder.Services.AddScoped<EmpRepo>();// what is use of this line is code
+Explanation
+1. builder.Services means
+
+Refers to the Dependency Injection container in ASP.NET Core.
+
+This container manages object creation and lifetime for your classes (services, repositories, etc.).
+
+It is available inside the Program.cs file during app startup.
+===================================================================
+AddScoped<EmpRepository>() means
+
+Registers the EmpRepository class as a Scoped service.
+
+It tells ASP.NET Core:
+
+Whenever any controller or class needs an EmpRepository object, create one per HTTP request, and reuse it throughout that request.
+======================================================================================
+Method	                    Lifetime	                                                                          Description
+AddSingleton	 Single instance for the entire application	                 Created once and reused everywhere until app stops.
+AddScoped	 One instance per HTTP request	                                    New object for each web request (shared within that request).
+AddTransient	 New instance every time it's requested	                 Always creates a fresh object.
+====================================================================================================
+@model IEnumerable<WebAppCrud.Models.Employee>
+1️What does @model mean?
+
+The @model directive in a Razor View tells what type of data (model) this view will receive from the Controller.
+
+It makes the view strongly typed — meaning you get IntelliSense, compile-time type checking, and direct access to model properties.
+
+2️.What does IEnumerable<WebAppCrud.Models.Employee> mean?
+
+IEnumerable<T> is an interface in C# used to represent a collection (list) of items that can be iterated (looped) over.
+
+IEnumerable<Employee> means → “A list or sequence of Employee objects.”
+
+So the view expects a collection of Employee records (not just one).
+
+1️.What is Model in Razor View?
+
+In ASP.NET MVC, each View is strongly typed — meaning it’s connected to a specific C# model or list passed from the Controller.
+
+The keyword Model represents the data that your Controller sends to this View.
+
+@foreach (var emp in Model) means
+
+Model → is your list of employees (List<EmpModel>).
+
+foreach → loops through each employee object in that list.
+
+emp → represents one employee in each iteration.
+
+
+
+
